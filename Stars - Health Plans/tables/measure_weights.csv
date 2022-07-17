@@ -1,0 +1,529 @@
+star_year,measure_id,weight_category,part_weight,overall_weight
+2022,C01,Process Measure,1,1
+2022,C02,Process Measure,1,1
+2022,C03,Process Measure,1,1
+2022,C04,Process Measure,1,1
+2022,C05,Process Measure,1,1
+2022,C06,Process Measure,1,1
+2022,C07,Process Measure,1,1
+2022,C08,Process Measure,1,1
+2022,C09,Process Measure,1,1
+2022,C10,Process Measure,1,1
+2022,C11,Intermediate Outcome Measure,3,3
+2022,C12,Process Measure,1,1
+2022,C13,Process Measure,1,1
+2022,C14,Process Measure,1,1
+2022,C15,Process Measure,1,1
+2022,C16,Process Measure,1,1
+2022,C17,Patients' Experience and Complaints Measure,2,2
+2022,C18,Patients' Experience and Complaints Measure,2,2
+2022,C19,Patients' Experience and Complaints Measure,2,2
+2022,C20,Patients' Experience and Complaints Measure,2,2
+2022,C21,Patients' Experience and Complaints Measure,2,2
+2022,C22,Patients' Experience and Complaints Measure,2,2
+2022,C23,Patients' Experience and Complaints Measure,2,2
+2022,C24,Patients' Experience and Complaints Measure,2,2
+2022,C25,Improvement Measure,5,5
+2022,C26,Measures Capturing Access,2,2
+2022,C27,Measures Capturing Access,2,2
+2022,C28,Measures Capturing Access,2,2
+2022,D01,Measures Capturing Access,2,2
+2022,D02,Patients' Experience and Complaints Measure,2,2
+2022,D03,Patients' Experience and Complaints Measure,2,2
+2022,D04,Improvement Measure,5,5
+2022,D05,Patients' Experience and Complaints Measure,2,2
+2022,D06,Patients' Experience and Complaints Measure,2,2
+2022,D07,Process Measure,1,1
+2022,D08,Intermediate Outcome Measure,3,3
+2022,D09,Intermediate Outcome Measure,3,3
+2022,D10,Intermediate Outcome Measure,3,3
+2022,D11,Process Measure,1,1
+2022,D12,Intermediate Outcome Measure,3,3
+2021,C01,Process Measure,1,1
+2021,C02,Process Measure,1,1
+2021,C03,Process Measure,1,1
+2021,C04,Outcome Measure,3,3
+2021,C05,Outcome Measure,3,3
+2021,C06,Process Measure,1,1
+2021,C07,Process Measure,1,1
+2021,C08,Process Measure,1,1
+2021,C09,Process Measure,1,1
+2021,C10,Process Measure,1,1
+2021,C11,Process Measure,1,1
+2021,C12,Process Measure,1,1
+2021,C13,Process Measure,1,1
+2021,C14,Process Measure,1,1
+2021,C15,Intermediate Outcome Measure,3,3
+2021,C16,Process Measure,1,1
+2021,C17,Process Measure,1,1
+2021,C18,Process Measure,1,1
+2021,C19,Process Measure,1,1
+2021,C20,Process Measure,1,1
+2021,C21,Patients' Experience and Complaints Measure,2,2
+2021,C22,Patients' Experience and Complaints Measure,2,2
+2021,C23,Patients' Experience and Complaints Measure,2,2
+2021,C24,Patients' Experience and Complaints Measure,2,2
+2021,C25,Patients' Experience and Complaints Measure,2,2
+2021,C26,Patients' Experience and Complaints Measure,2,2
+2021,C27,Patients' Experience and Complaints Measure,2,2
+2021,C28,Patients' Experience and Complaints Measure,2,2
+2021,C29,Improvement Measure,5,5
+2021,C30,Measures Capturing Access,2,2
+2021,C31,Measures Capturing Access,2,2
+2021,C32,Measures Capturing Access,2,2
+2021,D01,Measures Capturing Access,2,2
+2021,D02,Measures Capturing Access,2,2
+2021,D03,Measures Capturing Access,2,2
+2021,D04,Patients' Experience and Complaints Measure,2,2
+2021,D05,Patients' Experience and Complaints Measure,2,2
+2021,D06,Improvement Measure,5,5
+2021,D07,Patients' Experience and Complaints Measure,2,2
+2021,D08,Patients' Experience and Complaints Measure,2,2
+2021,D09,Process Measure,1,1
+2021,D10,Intermediate Outcome Measure,3,3
+2021,D11,Intermediate Outcome Measure,3,3
+2021,D12,Intermediate Outcome Measure,3,3
+2021,D13,Process Measure,1,1
+2021,D14,Intermediate Outcome Measure,3,3
+2020,C01,Process Measure,1,1
+2020,C02,Process Measure,1,1
+2020,C03,Process Measure,1,1
+2020,C04,Outcome Measure,3,3
+2020,C05,Outcome Measure,3,3
+2020,C06,Process Measure,1,1
+2020,C07,Process Measure,1,1
+2020,C08,Process Measure,1,1
+2020,C09,Process Measure,1,1
+2020,C10,Process Measure,1,1
+2020,C11,Process Measure,1,1
+2020,C12,Process Measure,1,1
+2020,C13,Process Measure,1,1
+2020,C14,Process Measure,1,1
+2020,C15,Intermediate Outcome Measure,3,3
+2020,C16,Process Measure,1,1
+2020,C17,Process Measure,1,1
+2020,C18,Process Measure,1,1
+2020,C19,Process Measure,1,1
+2020,C20,Outcome Measure,3,3
+2020,C21,Process Measure,1,1
+2020,C22,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C23,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C29,Patients' Experience and Complaints Measure,1.5,1.5
+2020,C30,Improvement Measure,5,5
+2020,C31,Measures Capturing Access,1.5,1.5
+2020,C32,Measures Capturing Access,1.5,1.5
+2020,C33,Measures Capturing Access,1.5,1.5
+2020,D01,Measures Capturing Access,1.5,1.5
+2020,D02,Measures Capturing Access,1.5,1.5
+2020,D03,Measures Capturing Access,1.5,1.5
+2020,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2020,D05,Patients' Experience and Complaints Measure,1.5,1.5
+2020,D06,Improvement Measure,5,5
+2020,D07,Patients' Experience and Complaints Measure,1.5,1.5
+2020,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2020,D09,Process Measure,1,1
+2020,D10,Intermediate Outcome Measure,3,3
+2020,D11,Intermediate Outcome Measure,3,3
+2020,D12,Intermediate Outcome Measure,3,3
+2020,D13,Process Measure,1,1
+2020,D14,Intermediate Outcome Measure,1,1
+2019,C01,Process Measure,1,1
+2019,C02,Process Measure,1,1
+2019,C03,Process Measure,1,1
+2019,C04,Outcome Measure,3,3
+2019,C05,Outcome Measure,3,3
+2019,C06,Process Measure,1,1
+2019,C07,Process Measure,1,1
+2019,C08,Process Measure,1,1
+2019,C09,Process Measure,1,1
+2019,C10,Process Measure,1,1
+2019,C11,Process Measure,1,1
+2019,C12,Process Measure,1,1
+2019,C13,Process Measure,1,1
+2019,C14,Process Measure,1,1
+2019,C15,Intermediate Outcome Measure,3,3
+2019,C16,Intermediate Outcome Measure,3,3
+2019,C17,Process Measure,1,1
+2019,C18,Process Measure,1,1
+2019,C19,Process Measure,1,1
+2019,C20,Process Measure,1,1
+2019,C21,Outcome Measure,3,3
+2019,C22,Process Measure,1,1
+2019,C23,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C29,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C30,Patients' Experience and Complaints Measure,1.5,1.5
+2019,C31,Improvement Measure,5,5
+2019,C32,Measures Capturing Access,1.5,1.5
+2019,C33,Measures Capturing Access,1.5,1.5
+2019,C34,Measures Capturing Access,1.5,1.5
+2019,D01,Measures Capturing Access,1.5,1.5
+2019,D02,Measures Capturing Access,1.5,1.5
+2019,D03,Measures Capturing Access,1.5,1.5
+2019,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2019,D05,Patients' Experience and Complaints Measure,1.5,1.5
+2019,D06,Improvement Measure,5,5
+2019,D07,Patients' Experience and Complaints Measure,1.5,1.5
+2019,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2019,D09,Process Measure,1,1
+2019,D10,Intermediate Outcome Measure,3,3
+2019,D11,Intermediate Outcome Measure,3,3
+2019,D12,Intermediate Outcome Measure,3,3
+2019,D13,Process Measure,1,1
+2019,D14,Intermediate Outcome Measure,1,1
+2018,C01,Process Measure,1,1
+2018,C02,Process Measure,1,1
+2018,C03,Process Measure,1,1
+2018,C04,Outcome Measure,3,3
+2018,C05,Outcome Measure,3,3
+2018,C06,Process Measure,1,1
+2018,C07,Process Measure,1,1
+2018,C08,Process Measure,1,1
+2018,C09,Process Measure,1,1
+2018,C10,Process Measure,1,1
+2018,C11,Process Measure,1,1
+2018,C12,Process Measure,1,1
+2018,C13,Process Measure,1,1
+2018,C14,Process Measure,1,1
+2018,C15,Intermediate Outcome Measure,3,3
+2018,C16,Intermediate Outcome Measure,3,3
+2018,C17,Process Measure,1,1
+2018,C18,Process Measure,1,1
+2018,C19,Process Measure,1,1
+2018,C20,Process Measure,1,1
+2018,C21,Outcome Measure,3,3
+2018,C22,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C23,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C29,Patients' Experience and Complaints Measure,1.5,1.5
+2018,C30,Measures Capturing Access,1.5,1.5
+2018,C31,Improvement Measure,5,5
+2018,C32,Measures Capturing Access,1.5,1.5
+2018,C33,Measures Capturing Access,1.5,1.5
+2018,C34,Measures Capturing Access,1.5,1.5
+2018,D01,Measures Capturing Access,1.5,1.5
+2018,D02,Capturing Access,1.5,1.5
+2018,D03,Capturing Access,1.5,1.5
+2018,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2018,D05,Patients' Experience and Complaints Measure,1.5,1.5
+2018,D06,Measures Capturing Access,1.5,1.5
+2018,D07,Improvement Measure,5,5
+2018,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2018,D09,Patients' Experience and Complaints Measure,1.5,1.5
+2018,D10,Process Measure,1,1
+2018,D11,Intermediate Outcome Measure,3,3
+2018,D12,Intermediate Outcome Measure,3,3
+2018,D13,Intermediate Outcome Measure,3,3
+2018,D14,Process Measure,1,1
+2017,C01,Process Measure,1,1
+2017,C02,Process Measure,1,1
+2017,C03,Process Measure,1,1
+2017,C04,Outcome Measure,3,3
+2017,C05,Outcome Measure,3,3
+2017,C06,Process Measure,1,1
+2017,C07,Process Measure,1,1
+2017,C08,Process Measure,1,1
+2017,C09,Process Measure,1,1
+2017,C10,Process Measure,1,1
+2017,C11,Process Measure,1,1
+2017,C12,Process Measure,1,1
+2017,C13,Process Measure,1,1
+2017,C14,Process Measure,1,1
+2017,C15,Intermediate Outcome Measure,3,3
+2017,C16,Outcome Measure,3,3
+2017,C17,Process Measure,1,1
+2017,C18,Process Measure,1,1
+2017,C19,Outcome Measure,3,3
+2017,C20,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C21,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C22,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C23,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2017,C28,Measures Capturing Access,1.5,1.5
+2017,C29,Improvement Measure,5,5
+2017,C30,Measures Capturing Access,1.5,1.5
+2017,C31,Measures Capturing Access,1.5,1.5
+2017,C32,Measures Capturing Access,1.5,1.5
+2017,D01,Measures Capturing Access,1.5,1.5
+2017,D02,Measures Capturing Access,1.5,1.5
+2017,D03,Measures Capturing Access,1.5,1.5
+2017,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2017,D05,Patients' Experience and Complaints Measure,1.5,1.5
+2017,D06,Measures Capturing Access,1.5,1.5
+2017,D07,Improvement Measure,5,5
+2017,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2017,D09,Patients' Experience and Complaints Measure,1.5,1.5
+2017,D10,Process Measure,1,1
+2017,D11,Intermediate Outcome Measure,3,3
+2017,D12,Intermediate Outcome Measure,3,3
+2017,D13,Intermediate Outcome Measure,3,3
+2017,D14,Intermediate Outcome Measure,3,3
+2017,D15,Process Measure,1,1
+2016,C01,Process Measure,1,1
+2016,C02,Process Measure,1,1
+2016,C03,Process Measure,1,1
+2016,C04,Outcome Measure,3,3
+2016,C05,Outcome Measure,3,3
+2016,C06,Process Measure,1,1
+2016,C07,Process Measure,1,1
+2016,C08,Process Measure,1,1
+2016,C09,Process Measure,1,1
+2016,C10,Process Measure,1,1
+2016,C11,Process Measure,1,1
+2016,C12,Process Measure,1,1
+2016,C13,Process Measure,1,1
+2016,C14,Process Measure,1,1
+2016,C15,Intermediate Outcome Measure,3,3
+2016,C16,Intermediate Outcome Measure,3,3
+2016,C17,Process Measure,1,1
+2016,C18,Process Measure,1,1
+2016,C19,Outcome Measure,3,3
+2016,C20,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C21,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C22,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C23,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2016,C28,Measures Capturing Access,1,1
+2016,C29,Improvement Measure,5,5
+2016,C30,Measures Capturing Access,1.5,1.5
+2016,C31,Measures Capturing Access,1.5,1.5
+2016,C32,Measures Capturing Access,1.5,1.5
+2016,D01,Measures Capturing Access,1.5,1.5
+2016,D02,Measures Capturing Access,1.5,1.5
+2016,D03,Measures Capturing Access,1.5,1.5
+2016,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2016,D05,Patients' Experience and Complaints Measure,1.5,1.5
+2016,D06,Measures Capturing Access,1,1
+2016,D07,Improvement Measure,5,5
+2016,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2016,D09,Patients' Experience and Complaints Measure,1.5,1.5
+2016,D10,Process Measure,1,1
+2016,D11,Intermediate Outcome Measure,3,3
+2016,D12,Intermediate Outcome Measure,3,3
+2016,D13,Intermediate Outcome Measure,3,3
+2016,D14,Intermediate Outcome Measure,3,3
+2016,D15,Process Measure,1,1
+2015,C01,Process Measure,1,1
+2015,C02,Process Measure,1,1
+2015,C03,Process Measure,1,1
+2015,C04,Process Measure,1,1
+2015,C05,Outcome Measure,3,3
+2015,C06,Outcome Measure,3,3
+2015,C07,Process Measure,1,1
+2015,C08,Process Measure,1,1
+2015,C09,Process Measure,1,1
+2015,C10,Process Measure,1,1
+2015,C11,Process Measure,1,1
+2015,C12,Process Measure,1,1
+2015,C13,Process Measure,1,1
+2015,C14,Process Measure,1,1
+2015,C15,Process Measure,1,1
+2015,C16,Intermediate Outcome Measure,3,3
+2015,C17,Intermediate Outcome Measure,3,3
+2015,C18,Intermediate Outcome Measure,3,3
+2015,C19,Process Measure,1,1
+2015,C20,Process Measure,1,1
+2015,C21,Process Measure,1,1
+2015,C22,Outcome Measure,3,3
+2015,C23,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C29,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C30,Patients' Experience and Complaints Measure,1.5,1.5
+2015,C31,Improvement Measure,5,5
+2015,C32,Measures Capturing Access,1.5,1.5
+2015,C33,Measures Capturing Access,1.5,1.5
+2015,D01,Measures Capturing Access,1.5,1.5
+2015,D02,Measures Capturing Access,1.5,1.5
+2015,D03,Patients' Experience and Complaints Measure,1.5,1.5
+2015,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2015,D05,Improvement Measure,5,5
+2015,D06,Patients' Experience and Complaints Measure,1.5,1.5
+2015,D07,Patients' Experience and Complaints Measure,1.5,1.5
+2015,D08,Process Measure,1,1
+2015,D09,Intermediate Outcome Measure,3,3
+2015,D10,Intermediate Outcome Measure,3,3
+2015,D11,Intermediate Outcome Measure,3,3
+2015,D12,Intermediate Outcome Measure,3,3
+2015,D13,Intermediate Outcome Measure,3,3
+2014,C01,Process Measure,1,1
+2014,C02,Process Measure,1,1
+2014,C03,Process Measure,1,1
+2014,C04,Process Measure,1,1
+2014,C05,Process Measure,1,1
+2014,C06,Process Measure,1,1
+2014,C07,Outcome Measure,3,3
+2014,C08,Outcome Measure,3,3
+2014,C09,Process Measure,1,1
+2014,C10,Process Measure,1,1
+2014,C11,Process Measure,1,1
+2014,C12,Process Measure,1,1
+2014,C13,Process Measure,1,1
+2014,C14,Process Measure,1,1
+2014,C15,Process Measure,1,1
+2014,C16,Process Measure,1,1
+2014,C17,Intermediate Outcome Measures,3,3
+2014,C18,Intermediate Outcome Measures,3,3
+2014,C19,Intermediate Outcome Measures,3,3
+2014,C20,Process Measure,1,1
+2014,C21,Process Measure,1,1
+2014,C22,Process Measure,1,1
+2014,C23,Outcome Measure,3,3
+2014,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C29,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C30,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C31,Measures Capturing Access,1.5,1.5
+2014,C32,Patients' Experience and Complaints Measure,1.5,1.5
+2014,C33,Outcome Measure,3,3
+2014,C34,Measures Capturing Access,1.5,1.5
+2014,C35,Measures Capturing Access,1.5,1.5
+2014,C36,Measures Capturing Access,1.5,1.5
+2014,D01,Measures Capturing Access,1.5,1.5
+2014,D02,Measures Capturing Access,1.5,1.5
+2014,D03,Measures Capturing Access,1.5,1.5
+2014,D04,Patients' Experience and Complaints Measure,1.5,1.5
+2014,D05,Measures Capturing Access,1.5,1.5
+2014,D06,Patients' Experience and Complaints Measure,1.5,1.5
+2014,D07,Outcome Measure,3,3
+2014,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2014,D09,Patients' Experience and Complaints Measure,1.5,1.5
+2014,D10,Process Measure,1,1
+2014,D11,Intermediate Outcome Measures,3,3
+2014,D12,Intermediate Outcome Measures,3,3
+2014,D13,Intermediate Outcome Measures,3,3
+2014,D14,Intermediate Outcome Measures,3,3
+2014,D15,Intermediate Outcome Measures,3,3
+2013,C01,Process Measure,1,1
+2013,C02,Process Measure,1,1
+2013,C03,Process Measure,1,1
+2013,C04,Process Measure,1,1
+2013,C05,Process Measure,1,1
+2013,C06,Process Measure,1,1
+2013,C07,Outcome Measure,3,3
+2013,C08,Outcome Measure,3,3
+2013,C09,Process Measure,1,1
+2013,C10,Process Measure,1,1
+2013,C11,Process Measure,1,1
+2013,C12,Process Measure,1,1
+2013,C13,Process Measure,1,1
+2013,C14,Process Measure,1,1
+2013,C15,Process Measure,1,1
+2013,C16,Process Measure,1,1
+2013,C17,Intermediate Outcome Measures,3,3
+2013,C18,Intermediate Outcome Measures,3,3
+2013,C19,Intermediate Outcome Measures,3,3
+2013,C20,Process Measure,1,1
+2013,C21,Process Measure,1,1
+2013,C22,Process Measure,1,1
+2013,C23,Outcome Measure,3,3
+2013,C24,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C25,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C29,Patients' Experience and Complaints Measure,1,1
+2013,C30,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C31,Measures Capturing Access,1.5,1.5
+2013,C32,Patients' Experience and Complaints Measure,1.5,1.5
+2013,C33,Outcome Measure,1,1
+2013,C34,Measures Capturing Access,1.5,1.5
+2013,C35,Measures Capturing Access,1.5,1.5
+2013,C36,Measures Capturing Access,1.5,1.5
+2013,C37,Process Measure,1,1
+2013,D01,Measures Capturing Access,1.5,1.5
+2013,D02,Measures Capturing Access,1.5,1.5
+2013,D03,Measures Capturing Access,1.5,1.5
+2013,D04,Measures Capturing Access,1.5,1.5
+2013,D05,Process Measure,1,1
+2013,D06,Patients' Experience and Complaints Measure,1.5,1.5
+2013,D07,Measures Capturing Access,1.5,1.5
+2013,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2013,D09,Outcome Measure,1,1
+2013,D10,Patients' Experience and Complaints Measure,1.5,1.5
+2013,D11,Patients' Experience and Complaints Measure,1.5,1.5
+2013,D12,Patients' Experience and Complaints Measure,1.5,1.5
+2013,D13,Process Measure,1,1
+2013,D14,Intermediate Outcome Measures,3,3
+2013,D15,Intermediate Outcome Measures,3,3
+2013,D16,Intermediate Outcome Measures,3,3
+2013,D17,Intermediate Outcome Measures,3,3
+2013,D18,Intermediate Outcome Measures,3,3
+2012,C01,Process Measure,1,1
+2012,C02,Process Measure,1,1
+2012,C03,Process Measure,1,1
+2012,C04,Process Measure,1,1
+2012,C05,Process Measure,1,1
+2012,C06,Process Measure,1,1
+2012,C07,Process Measure,1,1
+2012,C08,Outcome Measure,3,3
+2012,C09,Outcome Measure,3,3
+2012,C10,Process Measure,1,1
+2012,C11,Measures Capturing Access,1.5,1.5
+2012,C12,Process Measure,1,1
+2012,C13,Process Measure,1,1
+2012,C14,Process Measure,1,1
+2012,C15,Process Measure,1,1
+2012,C16,Process Measure,1,1
+2012,C17,Process Measure,1,1
+2012,C18,Process Measure,1,1
+2012,C19,Intermediate Outcome Measures,3,3
+2012,C20,Intermediate Outcome Measures,3,3
+2012,C21,Intermediate Outcome Measures,3,3
+2012,C22,Process Measure,1,1
+2012,C23,Process Measure,1,1
+2012,C24,Process Measure,1,1
+2012,C25,Outcome Measure,1,1
+2012,C26,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C27,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C28,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C29,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C30,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C31,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C32,Measures Capturing Access,1.5,1.5
+2012,C33,Patients' Experience and Complaints Measure,1.5,1.5
+2012,C34,Measures Capturing Access,1.5,1.5
+2012,C35,Measures Capturing Access,1.5,1.5
+2012,C36,Measures Capturing Access,1.5,1.5
+2012,D01,Measures Capturing Access,1.5,1.5
+2012,D02,Measures Capturing Access,1.5,1.5
+2012,D03,Measures Capturing Access,1.5,1.5
+2012,D04,Measures Capturing Access,1.5,1.5
+2012,D05,Process Measure,1,1
+2012,D06,Patients' Experience and Complaints Measure,1.5,1.5
+2012,D07,Measures Capturing Access,1.5,1.5
+2012,D08,Patients' Experience and Complaints Measure,1.5,1.5
+2012,D09,Patients' Experience and Complaints Measure,1.5,1.5
+2012,D10,Patients' Experience and Complaints Measure,1.5,1.5
+2012,D11,Patients' Experience and Complaints Measure,1.5,1.5
+2012,D12,Process Measure,1,1
+2012,D13,Intermediate Outcome Measures,3,3
+2012,D14,Intermediate Outcome Measures,3,3
+2012,D15,Intermediate Outcome Measures,3,3
+2012,D16,Intermediate Outcome Measures,3,3
+2012,D17,Intermediate Outcome Measures,3,3

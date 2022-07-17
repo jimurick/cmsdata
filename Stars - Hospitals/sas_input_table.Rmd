@@ -1,0 +1,195 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+```{r}
+library(tidyverse)
+library(haven) # just for the function read_sas()
+
+va_provider_ids <-
+  va_hospital_df %>%
+  mutate(va_df = map(va_df, ~tibble(provider_id = .x[, colnames(.x)[1]]))) %>%
+  unnest(va_df) %>%
+  distinct(provider_id) %>%
+  pull(provider_id)
+
+all_data_filename <- "all_data_2021apr.sas7bdat"
+all_data_df <- haven::read_sas(all_data_filename)
+all_data_df
+```
+
+
+
+```{r}
+make_sas_input_2021_04 <- function(report_date, include_old_measures = FALSE) {
+  mortality_measures_df <-
+    all_mort_readm_data_df %>%
+    filter(zip_date == report_date) %>%
+    select(data) %>%
+    unnest(data) %>%
+    mutate(
+      measure_id = case_when(measure_id == 'PSI_04' ~ 'PSI_4_SURG_COMP',
+                             TRUE ~ measure_id)
+    ) %>%
+    filter(measure_id %in% measures_outcomes_mortality) %>%
+    pivot_wider(id_cols = provider_id,
+                names_from = measure_id, values_from = score) %>%
+    select_at(c("provider_id", measures_outcomes_mortality))
+  
+  safety_measures_df <-
+    full_join(
+      all_hai_data_df %>%
+        filter(zip_date == report_date) %>%
+        select(data) %>%
+        unnest(data) %>%
+        pivot_wider(id_cols = provider_id,
+                    names_from = measure_id, values_from = sir),
+      all_mort_readm_data_df %>%
+        filter(zip_date == report_date) %>%
+        select(data) %>%
+        unnest(data) %>%
+        mutate(
+          measure_id = ifelse(measure_id == 'PSI_90', 'PSI_90_SAFETY', measure_id)
+        ) %>%
+        filter(measure_id %in% measures_outcomes_safety) %>%
+        pivot_wider(id_cols = provider_id,
+                    names_from = measure_id, values_from = score),
+      by = "provider_id"
+    ) %>%
+    select_at(c("provider_id", measures_outcomes_safety))
+  
+  readmission_measures_df <-
+    all_mort_readm_data_df %>%
+    filter(zip_date == report_date) %>%
+    select(data) %>%
+    unnest(data) %>%
+    filter(measure_id %in% measures_outcomes_readmission) %>%
+    pivot_wider(id_cols = provider_id,
+                names_from = measure_id, values_from = score) %>%
+    select_at(c("provider_id", measures_outcomes_readmission))
+  
+  
+  temp_hcahps_df <-
+    all_hcahps_data_df %>%
+    filter(zip_date == report_date) %>%
+    select(data) %>%
+    unnest(data)
+  
+  temp_averaged_df <-
+    temp_hcahps_df %>%
+    filter(!grepl("^H_COMP_[0-9]$", measure_id)) %>%
+    select(provider_id, measure_id, STAR_RATING) %>%
+    pivot_wider(id_cols = provider_id,
+                names_from = measure_id, values_from = STAR_RATING) %>%
+    transmute(
+      provider_id,
+      H_INDI_STAR_RATING = (H_CLEAN_HSP + H_QUIET_HSP) / 2,
+      H_GLOB_STAR_RATING = (H_HSP_RATING + H_RECMND) / 2
+    )
+  
+  pt_exp_measures_df <-
+    temp_hcahps_df %>%
+    mutate(measure_id = map_chr(measure_id, ~str_c(.x, "_STAR_RATING"))) %>%
+    filter(measure_id %in% measures_pt_exp) %>%
+    pivot_wider(id_cols = provider_id,
+                names_from = measure_id, values_from = STAR_RATING) %>%
+    select_at(
+      c("provider_id",
+        setdiff(measures_pt_exp, c("H_GLOB_STAR_RATING", "H_INDI_STAR_RATING")))
+    ) %>%
+    full_join(temp_averaged_df, by = "provider_id")
+
+  
+  temp_process_df <-
+    bind_rows(
+      all_timely_data_df %>%
+        filter(zip_date == report_date) %>%
+        select(data) %>%
+        unnest(data) %>%
+        mutate(measure_id = toupper(measure_id)) %>%
+        transmute(provider_id, measure_id, score),
+      all_imaging_data_df %>%
+        filter(zip_date == report_date) %>%
+        select(data) %>%
+        unnest(data) %>%
+        transmute(provider_id, measure_id, score)
+    ) %>%
+    distinct() %>%
+    pivot_wider(id_cols = provider_id,
+                names_from = measure_id, values_from = score)
+  
+  found_measure_ids <-
+    measures_process[measures_process %in% colnames(temp_process_df)]
+  
+  process_measures_df <-
+    temp_process_df %>%
+    select_at(c("provider_id", found_measure_ids))
+  
+  sas_df <-
+    mortality_measures_df %>%
+    full_join(safety_measures_df, by = "provider_id") %>%
+    full_join(readmission_measures_df, by = "provider_id") %>%
+    full_join(pt_exp_measures_df, by = "provider_id") %>%
+    full_join(process_measures_df, by = "provider_id")
+  
+  retired_measures <- c("OP_30","ED_2B")
+  
+  if (include_old_measures & !all(retired_measures %in% colnames(sas_df))) {
+    oct2020_df <-
+      all_timely_data_df %>% filter(zip_date == "2020-10-01") %>%
+      select(data) %>% unnest(data) %>%
+      filter(toupper(measure_id) %in% retired_measures) %>%
+      select(provider_id, measure_id, score) %>%
+      pivot_wider(provider_id, names_from = measure_id, values_from = score) %>%
+      transmute(provider_id, ED_2B = ED_2b, OP_30 = OP_30) %>%
+      arrange(provider_id)
+    
+    sas_df <-
+      sas_df %>%
+      select_at(setdiff(colnames(sas_df), retired_measures)) %>%
+      full_join(oct2020_df, by = "provider_id")
+  }
+  
+  sas_df %>%
+    mutate(va_hospital = provider_id %in% va_provider_ids) %>%
+    relocate(va_hospital, .after = provider_id) %>%
+    rename(PROVIDER_ID = provider_id)
+}
+```
+
+
+
+
+```{r}
+all_sas_df <-
+  zip_df %>%
+  filter(zip_date >= "2020-10-01", zip_date <= "2022-04-01") %>%
+  transmute(
+    zip_id,
+    zip_date,
+    zip_year,
+    zip_month,
+    sas_input_df = map(zip_date, ~make_sas_input_2021_04(.x, (.x <= "2020-10-01")))
+  )
+
+all_sas_df$sas_input_df[[6]]
+all_sas_df$sas_input_df[[7]]
+all_sas_df$sas_input_df[[8]]
+
+
+all_sas_df %>% mutate(sas_dim = map(sas_input_df, ~dim(.x))) %>% unnest(sas_dim)
+
+#save(all_sas_df, file = "all_sas_df.RData")
+```
+
+```{r}
+sas_input_2020_10 <- make_sas_input_2021_04('2020-10-01', include_old_measures = TRUE)
+sas_input_2021_04 <- make_sas_input_2021_04('2021-04-01')
+sas_input_2021_07 <- make_sas_input_2021_04('2021-07-01')
+```
+
+
+

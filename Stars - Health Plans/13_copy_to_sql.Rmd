@@ -1,0 +1,101 @@
+---
+title: "Copy Tables to SQL"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+library(DBI)
+library(odbc)
+```
+
+
+```{r}
+load(file.path(dirs$rdata, "12_sql_tables.RData"))
+
+key_col_df <-
+  tribble(
+    ~table_name,                       ~key_col,
+    "StarsPartCD_Contracts",           c("star_year", "contract_id"),
+    "StarsPartCD_Measures",            c("star_year", "measure_id"),
+    "StarsPartCD_Measure_Scores",      c("star_year", "measure_id",
+                                         "contract_id"),
+    "StarsPartCD_Measure_Star_Ranges", c("star_year", "cut_point_type",
+                                         "measure_id", "stars"),
+    "StarsPartCD_Cut_Points",          c("star_year", "cut_point_type",
+                                         "measure_id", "low_star", "high_star"),
+    "StarsPartCD_Domain_Stars",        c("star_year","domain_id","contract_id"),
+    "StarsPartCD_Summary_Stars",       c("star_year", "summary_type",
+                                         "contract_id"),
+    "StarsPartCD_CAI",                 c("star_year", "contract_id"),
+    "StarsPartCD_Disenrollment",       c("star_year", "contract_id")
+  )
+
+key_type_df <-
+  tribble(
+    ~key_col,         ~key_type,
+    "star_year",      "int",
+    "contract_id",    "varchar(255)",
+    "measure_id",     "varchar(255)",
+    "cut_point_type", "varchar(255)",
+    "stars",          "int",
+    "low_star",       "int",
+    "high_star",      "int",
+    "domain_id",      "varchar(255)",
+    "summary_type",   "varchar(255)"
+  )
+
+table_data_df <-
+  tibble(
+    table_name = names(sql_tables),
+    table_df   = sql_tables
+  ) %>%
+  inner_join(key_col_df, by ="table_name") %>%
+  unnest(key_col) %>%
+  inner_join(key_type_df, by = "key_col") %>%
+  nest(key_df = c(key_col, key_type))
+
+table_data_df
+table_data_df$key_df[[1]]
+```
+
+
+
+```{r}
+alter_table_command <- function(key_col, key_type, table_name, conn) {
+  sqlcmd <- sprintf("alter table [%s] alter column [%s] %s not null;",
+                    table_name, key_col, key_type)
+  dbExecute(conn, sqlcmd)
+}
+
+create_index_command <- function(key_df, table_name, conn) {
+  key_str <- sprintf("[%s]", paste0(key_df$key_col, collapse = '], ['))
+  sqlcmd <- sprintf("create clustered index [idx_%s] on [%s] (%s)",
+                    table_name, table_name, key_str)
+  dbExecute(conn, sqlcmd)
+}
+
+save_one_table_to_sql <- function(table_name, table_df, key_df, conn) {
+  dbWriteTable(conn, name = table_name, value = table_df, overwrite = TRUE)
+  for (i in 1:nrow(key_df)) {
+    key_df[i, ] %$% alter_table_command(key_col, key_type, table_name, conn)
+  }
+  create_index_command(key_df, table_name, conn)
+}
+```
+
+
+```{r}
+server_name <- ""
+db_name <- ""
+
+conn <- dbConnect(odbc(), driver = "{SQL Server}", server = server_name,
+                  Trusted_Connection = "yes", database = db_name)
+
+table_data_df %>%
+  pwalk(save_one_table_to_sql, conn)
+```
+
+

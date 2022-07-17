@@ -1,0 +1,146 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+```
+
+
+```{r}
+process_one_contract_file <- function(...) {
+  row_df <- data.frame(...)
+  df <-
+    row_df %$%
+    read.csv(filename, skip = skip, colClasses = "character",
+             encoding = encoding)[, first_col:last_col]
+  
+  col_order <- unlist(row_df %>% select(org_type:parent_name))
+  given_cols <- col_order[!is.na(col_order)]
+  colnames(df) <- c("contract_id", names(given_cols[order(given_cols)]))
+  df[setdiff(names(col_order), colnames(df))] <- NA_character_
+  df[c("contract_id", names(col_order))]
+}
+
+
+initial_contract_df <-
+  read.csv(file.path(dirs$table, "file_info_contracts.csv")) %>%
+  mutate(line_nbr = 1:n()) %>%
+  group_by(star_year, line_nbr) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    contract_df = map(data, ~do.call(process_one_contract_file, .x))
+  ) %>%
+  select(-line_nbr, -data) %>%
+  unnest(contract_df) %>%
+  mutate(across(everything(), str_trim)) %>%
+  mutate(across(everything(), function(x) ifelse(x=="", NA_character_, x))) %>%
+  mutate(star_year = as.integer(star_year)) %>%
+  filter(!is.na(contract_id)) %>%
+  filter(!(is.na(org_type) & is.na(contract_name) &
+             is.na(marketing_name) & is.na(parent_name))) %>%
+  mutate(
+    org_type = case_when(
+      star_year == 2009 & org_type %in% c("MA-PD", "PDP") ~ NA_character_,
+      TRUE ~ org_type
+    )
+  ) %>%
+  mutate(across(all_of(c("contract_name", "marketing_name", "parent_name")),
+                fix_non_ascii))
+
+initial_contract_df
+```
+
+
+```{r}
+# If a contract has two name/type values in a given year, choose the first
+# non-NA value
+choose_a_name <- function(df, colname) {
+  x <- df[[colname]]
+  ifelse(any(!is.na(x)), x[!is.na(x)][1], NA_character_)
+}
+
+one_contract_per_year_df <-
+  initial_contract_df %>%
+  nest(data = c(org_type, contract_name, marketing_name, parent_name)) %>%
+  mutate(
+    org_type       = map_chr(data, choose_a_name, "org_type"),
+    contract_name  = map_chr(data, choose_a_name, "contract_name"),
+    marketing_name = map_chr(data, choose_a_name, "marketing_name"),
+    parent_name    = map_chr(data, choose_a_name, "parent_name")
+  ) %>%
+  select(-data)
+
+one_contract_per_year_df
+```
+
+
+
+```{r}
+snp_df <-
+  read.csv(file.path(dirs$table, "snp_df.csv")) %>%
+  mutate(star_year = 2022L)
+
+snp_df
+```
+
+```{r}
+contract_df <-
+  one_contract_per_year_df %>%
+  left_join(snp_df, by = c("star_year", "contract_id")) %>%
+  mutate(
+    part_d_cut_point_type = case_when(
+      grepl("PDP", org_type) ~ "Part D PDP",
+      is.na(org_type)        ~ NA_character_,
+      grepl("MSA", org_type) ~ NA_character_,
+      TRUE                   ~ "Part D MA-PD"
+    ),
+    contract_type = case_when(
+      star_year != 2022L ~ NA_character_,
+      org_type %in% c("1876 Cost", "MSA", "PDP", "PFFS", "Demo") ~ org_type,
+      org_type == "Employer/Union Only Direct Contract PDP"      ~ "PDP",
+      !is.na(snp_type)   ~ snp_type,
+      TRUE               ~ "CCP w/o SNP"
+    )
+  ) %>%
+  select(-snp_type)
+
+contract_df
+```
+
+
+```{r}
+save(contract_df, file = file.path(dirs$rdata, "08_contract_df.RData"))
+```
+
+
+
+
+# Testing and scratch work
+
+```{r, eval=FALSE}
+initial_contract_df %>%
+  filter(!is.na(org_type)) %>%
+  distinct(star_year, contract_id, org_type) %>%
+  group_by(star_year, contract_id) %>%
+  mutate(n = n_distinct(org_type)) %>%
+  ungroup() %>%
+  filter(n > 1)
+
+initial_contract_df %>%
+  filter(org_type == "MA-PD") %>%
+  count(star_year)
+
+initial_contract_df %>% filter(is.na(contract_id)) %>% count(star_year)
+initial_contract_df %>% filter(star_year == 2009) %>%
+  count(is.na(parent_name), org_type == "MA-PD")
+
+initial_contract_df %>% filter(is.na(org_type), star_year == 2009)
+```
+
+
+

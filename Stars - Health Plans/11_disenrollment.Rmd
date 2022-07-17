@@ -1,0 +1,100 @@
+---
+title: "Disenrollment Reasons"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+```
+
+
+
+```{r}
+process_one_disenrollment_file <- function(...) {
+  row_df <- list(...)
+  df <-
+    row_df %$%
+    read.csv(filename, skip = skip,
+             check.names = FALSE)[, c(1, first_col:last_col)]
+  colnames(df)[1] <- "contract_id"
+  
+  df %>%
+    pivot_longer(-contract_id,
+                 names_to = "disenrollment_reason", values_to = "entry") %>%
+    mutate(across(everything(), str_trim)) %>%
+    mutate(across(everything(),
+                  function(x) ifelse(x=="", NA_character_, x))) %>%
+    transmute(
+      contract_id,
+      disenrollment_reason,
+      disenrollment_pcg = ifelse(
+        grepl("^[0-9.]+\\s*[%]$", entry),
+        as.numeric(gsub("[%]", "", entry)) / 100,
+        NA_real_
+      ),
+      disenrollment_note = ifelse(
+        grepl("^[0-9.]+\\s*[%]$", entry), NA_character_, entry
+      )
+    )
+}
+
+
+disenrollment_file_vec <- get_unzipped_files_by_pattern("disenrollment.*csv$")
+
+disenrollment_df <-
+  tibble(
+    star_year = as.integer(str_sub(names(disenrollment_file_vec), end = 4L)),
+    filename = unname(disenrollment_file_vec)
+  ) %>%
+  inner_join(
+    tribble(
+      ~star_year, ~skip, ~first_col, ~last_col,
+      2020L,      1,     5,          9,
+      2021L,      1,     5,          9,
+      2022L,      1,     5,          9,
+    ),
+    by = "star_year"
+  ) %>%
+  mutate(file_nbr = 1:n()) %>%
+  group_by(star_year, file_nbr) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    disenrollment_df = map(data, ~do.call(process_one_disenrollment_file, .x))
+  ) %>%
+  select(-file_nbr, -data) %>%
+  unnest(disenrollment_df)
+
+
+disenrollment_df
+```
+
+
+```{r}
+save(disenrollment_df,
+     file = file.path(dirs$rdata, "11_disenrollment_df.RData"))
+```
+
+
+
+
+
+# Testing
+
+```{r}
+disenrollment_df %>%
+  filter(is.na(disenrollment_pcg)) %>%
+  ggplot(aes(star_year)) +
+    geom_bar() +
+    facet_wrap(~disenrollment_note)
+
+disenrollment_df %>%
+  filter(!is.na(disenrollment_pcg)) %>%
+  ggplot(aes(star_year)) +
+    geom_bar() +
+    facet_wrap(~disenrollment_reason)
+```
+
+

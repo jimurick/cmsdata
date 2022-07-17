@@ -1,0 +1,725 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(haven)
+```
+
+
+
+```{r}
+kmeans_Lloyd <- function(x, centers, maxiter, strict) {
+  
+  n <- length(x)
+  k <- length(centers)
+  cl <- integer(n)
+  
+  for (iter in 1:maxiter) {
+    x_dt <- data.table(xid = 1:length(x), x = x, cid = cl)
+    c_dt <- data.table(cid = 1:length(centers), center = centers)
+    
+    temp_dt <-
+      merge(
+        x_dt[, `:=`(old_cid = cid, dummy = 1)][, -"cid"][],
+        c_dt[, dummy := 1][],
+        by = "dummy", allow.cartesian = TRUE
+      )[
+        , `:=`(dist = abs(x-center))
+      ][
+        order(xid, dist, cid)
+      ][
+        , .SD[1, c("x", "dist", "cid", "old_cid")], by = "xid"
+      ][
+        , `:=`(cid = ifelse(dist <= strict, cid, -cid))
+      ][
+        , `:=`(same = (old_cid == cid))
+      ][]
+    
+    cl <- integer(n)
+    cl[temp_dt$xid] <- temp_dt$cid
+    
+    count_dt <- temp_dt[cid > 0, .(N = .N, center = mean(x)), by = "cid"][]
+    
+    nc <- integer(k)
+    nc[count_dt$cid] <- count_dt$N
+    centers <- rep(NA_real_, k)
+    centers[count_dt$cid] <- count_dt$center
+    
+    if (all(temp_dt$same)) {
+      break
+    }
+  }
+  
+  c_dt <- data.table(center=centers, cid = 1:length(centers))
+  wss_dt <-
+    merge(x_dt, c_dt, by = "cid")[
+      cid > 0, .(wss = sum((x-center)^2)), by = "cid"
+    ][]
+  
+  wss <- numeric(k)
+  wss[wss_dt$cid] <- wss_dt$wss
+  
+  list(
+    "cluster" = cl, "centers" = centers, "iter" = iter, "wss" = wss, "nc" = nc
+  )
+}
+
+
+sas_proc_fastclus <- function(x, centers, iter.max = 10, strict = Inf) {
+  
+  m <- length(x)
+  if (missing(centers))
+    stop("'centers' must be a number or a matrix")
+  
+  if (length(centers) == 1) {
+    stop("centers must have length > 1")
+  } else {
+    if (any(duplicated(centers))) stop("initial centers are not distinct")
+    cn <- NULL
+    k <- length(centers)
+    
+    if (m < k) stop("more cluster centers than data points")
+  }
+  
+  if(iter.max < 1) stop("'iter.max' must be positive")
+
+  Z <- kmeans_Lloyd(x, centers, iter.max, strict)
+  
+  if (Z$iter > iter.max)
+    warning("did not converge in ", iter.max, " iterations", call.=FALSE)
+  if (any(Z$nc == 0))
+    warning("empty cluster: try a better set of initial centers", call.=FALSE)
+  
+  cluster <- Z$cluster
+  if(!is.null(rn <- rownames(x)))
+    names(cluster) <- rn
+  
+  out <- list(cluster = cluster, centers = Z$centers, withinss = Z$wss,
+              size = Z$nc)
+  class(out) <- "kmeans"
+  out
+}
+```
+
+
+
+
+
+
+# 0 - Data and Measure Standardization_2021Apr_E
+
+```{r}
+include_retired <- TRUE
+retired_measures <- c("OP_30","ED_2B")
+
+all_data_filename <- "all_data_2021apr.sas7bdat"
+all_data_df <- haven::read_sas(all_data_filename)
+# all_data_df <-
+#   all_sas_df %>%
+#   filter(zip_date == "2021-04-01") %>%
+#   select(sas_input_df) %>%
+#   unnest(sas_input_df)
+
+measures_outcomes_mortality <- c(
+  'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF',
+  'MORT_30_PN', 'MORT_30_STK', 'PSI_4_SURG_COMP'
+)
+measures_outcomes_safety <- c(
+  'COMP_HIP_KNEE',  'HAI_1', 'HAI_2', 'HAI_3',
+  'HAI_4', 'HAI_5', 'HAI_6', 'PSI_90_SAFETY'
+)
+measures_outcomes_readmission <- c(
+  'EDAC_30_AMI', 'EDAC_30_HF', 'EDAC_30_PN', 'OP_32',
+  'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE', 
+  'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36'
+)
+measures_pt_exp <- c(
+  'H_COMP_1_STAR_RATING', 'H_COMP_2_STAR_RATING', 'H_COMP_3_STAR_RATING',
+  'H_COMP_5_STAR_RATING', 'H_COMP_6_STAR_RATING', 'H_COMP_7_STAR_RATING',
+  'H_GLOB_STAR_RATING', 'H_INDI_STAR_RATING'
+)
+measures_process <- c(
+  'IMM_3', 'OP_22', 'OP_23',  'OP_29', 'OP_30','OP_33', 'PC_01', 'SEP_1',
+  'ED_2B', 'OP_2', 'OP_3B', 'OP_18B', 'OP_8', 'OP_10', 'OP_13'
+)
+if (!include_retired) {
+  measures_process <- setdiff(measures_process, retired_measures)
+}
+measure_all <- c(
+  measures_outcomes_mortality, measures_outcomes_safety,
+  measures_outcomes_readmission, measures_pt_exp, measures_process
+)
+```
+
+
+```{r}
+measure_volume0 <-
+  all_data_df[, measure_all] %>%
+  summarize(
+    across(everything(), function(x) { sum(!is.na(x)) })
+  )
+measure_volume_t0 <- t(measure_volume0)
+
+include_measure0 <- tibble(
+  freq            = measure_volume_t0[, 1],
+  measure_in_name = rownames(measure_volume_t0),
+  measure_in_std  = str_c("std_", rownames(measure_volume_t0))
+)
+measure_in_name <- include_measure0$measure_in_name
+# %put &measure_in;
+measure_cnt <- nrow(measure_in_name)
+measure_volume <- measure_volume0
+measure_volume_t <- measure_volume_t0
+less100_measure <- tibble(
+  freq = measure_volume_t[measure_volume_t <= 100],
+  measure_name = rownames(measure_volume_t)[measure_volume_t <= 100]
+)
+# DATA R.less100_measure;SET less100_measure;run;*OP-2;
+less100_measure_df <- less100_measure
+measure_exclude <- less100_measure$measure_name
+initial_data_df <-
+  all_data_df[, setdiff(colnames(all_data_df), measure_exclude)]
+include_measure <- 
+  tibble(
+    freq            = measure_volume_t[, 1],
+    measure_in_name = rownames(measure_volume_t),
+    measure_in_std  = str_c("std_", rownames(measure_volume_t))
+  ) %>%
+  filter(freq > 100)
+measure_in <- include_measure$measure_in_name
+measure_in_std <- include_measure$measure_in_std
+measure_cnt <- nrow(include_measure)
+
+
+std_data_analysis_df %>% filter(PROVIDER_ID == "400127")
+all_data_df %>% filter(PROVIDER_ID == "400127")
+std_data_df %>% filter(PROVIDER_ID == "400127")
+initial_data_df %>% filter(PROVIDER_ID == "400127")
+```
+
+
+
+```{r}
+outcomes_mortality <-
+  tibble(
+    col1 = measure_volume_t[, 1],
+    measure_in_name = rownames(measure_volume_t)
+  ) %>%
+  mutate(measure_in_std = str_c("std_", measure_in_name)) %>%
+  filter(col1 > 100, measure_in_name %in% measures_outcomes_mortality)
+measure_om <- outcomes_mortality$measure_in_std
+
+outcomes_safety <-
+  tibble(
+    col1 = measure_volume_t[, 1],
+    measure_in_name = rownames(measure_volume_t)
+  ) %>%
+  mutate(measure_in_std = str_c("std_", measure_in_name)) %>%
+  filter(col1 > 100, measure_in_name %in% measures_outcomes_safety)
+measure_os <- outcomes_safety$measure_in_std
+
+outcomes_readmission <-
+  tibble(
+    col1 = measure_volume_t[, 1],
+    measure_in_name = rownames(measure_volume_t)
+  ) %>%
+  mutate(measure_in_std = str_c("std_", measure_in_name)) %>%
+  filter(col1 > 100, measure_in_name %in% measures_outcomes_readmission)
+measure_or <- outcomes_readmission$measure_in_std
+
+ptexp <-
+  tibble(
+    col1 = measure_volume_t[, 1],
+    measure_in_name = rownames(measure_volume_t)
+  ) %>%
+  mutate(measure_in_std = str_c("std_", measure_in_name)) %>%
+  filter(col1 > 100, measure_in_name %in% measures_pt_exp)
+measure_ptexp <- ptexp$measure_in_std
+
+process <-
+  tibble(
+    col1 = measure_volume_t[, 1],
+    measure_in_name = rownames(measure_volume_t)
+  ) %>%
+  mutate(measure_in_std = str_c("std_", measure_in_name)) %>%
+  filter(col1 > 100, measure_in_name %in% measures_process)
+measure_process <- process$measure_in_std
+```
+
+
+```{r}
+keep_hos <- function(initial_data_df, measure_in, measure_cnt) {
+  initial_data_df$Total_m_cnt <- rowSums(!is.na(initial_data_df[, measure_in]))
+  keep_rows <- rowSums(!is.na(initial_data_df[, measure_in])) > 0
+  initial_data_df[keep_rows, ]
+}
+
+initial_data_df <- keep_hos(initial_data_df, measure_in, measure_cnt)
+
+summary_funcs <- list(N=length, MIN=min, MAX=max, MEAN=mean, STD=sd)
+measure_average_stddev_df <-
+  do.call(
+    rbind,
+    lapply(
+      names(summary_funcs),
+      function(func_name) {
+        initial_data_df[, measure_in] %>%
+          summarize(
+            across(
+              everything(),
+              function(x) summary_funcs[[func_name]](x[!is.na(x)])
+            )
+          ) %>%
+          mutate(STAT=func_name) %>%
+          relocate(STAT, .before = measure_in[1])
+      }
+    )
+  )
+
+std_data_analysis_df %>% filter(PROVIDER_ID == "400127")
+all_data_df %>% filter(PROVIDER_ID == "400127")
+std_data_df %>% filter(PROVIDER_ID == "400127")
+initial_data_df %>% filter(PROVIDER_ID == "400127")
+
+std_data_df <-
+  initial_data_df %>%
+  mutate(
+    across(all_of(measure_in), scale)
+  )
+
+measures_to_flip <- c(
+  'MORT_30_AMI', 'MORT_30_CABG', 'MORT_30_COPD', 'MORT_30_HF', 'MORT_30_PN',
+  'MORT_30_STK', 'PSI_4_SURG_COMP', 'COMP_HIP_KNEE', 'HAI_1', 'HAI_2', 'HAI_3',
+  'HAI_4', 'HAI_5', 'HAI_6', 'PSI_90_SAFETY', 'EDAC_30_AMI', 'EDAC_30_HF',
+  'EDAC_30_PN', 'OP_32', 'READM_30_CABG', 'READM_30_COPD', 'READM_30_HIP_KNEE',
+  'READM_30_HOSP_WIDE', 'OP_35_ADM', 'OP_35_ED', 'OP_36', 'OP_22', 'PC_01',
+  'OP_3B', 'OP_18B', 'ED_2B', 'OP_8', 'OP_10', 'OP_13'
+)
+if (!include_retired) {
+  measures_to_flip <- setdiff(measures_to_flip, retired_measures)
+}
+std_data_df[, measures_to_flip] <- -std_data_df[, measures_to_flip]
+
+colnames(std_data_df)[match(measure_in, colnames(std_data_df))] <-
+  measure_in_std
+
+std_data_analysis_df <-
+  cbind(
+    std_data_df[, setdiff(colnames(std_data_df), measure_in_std)],
+    std_data_df[, measure_in_std]
+  )
+```
+
+
+```{r}
+less100_measure_df
+measure_average_stddev_df
+std_data_analysis_df
+```
+
+
+
+# 1 - First stage_Simple Average of Measure Scores_2021Apr_E
+
+
+```{r}
+grp_score <- function(indsn, varlist) {
+  flag_df <-
+    indsn %>%
+    select_at(varlist) %>%
+    mutate(across(everything(), function(x) as.integer(!is.na(x))))
+  colnames(flag_df) <- str_c("C", 1:ncol(flag_df))
+  flag_df$total_cnt <- rowSums(!is.na(indsn[, varlist]))
+  flag_df$measure_wt <-
+    ifelse(flag_df$total_cnt != 0, flag_df$total_cnt, NA_real_)
+  flag_df$score_before_std <-
+    rowSums(indsn[, varlist], na.rm = TRUE) / flag_df$measure_wt
+  flag_df$Mean <- mean(flag_df$score_before_std, na.rm = TRUE)
+  flag_df$StdDev <- sd(flag_df$score_before_std, na.rm = TRUE)
+  flag_df$grp_score <-
+    (flag_df$score_before_std - flag_df$Mean) / flag_df$StdDev
+  cbind(indsn[, c('PROVIDER_ID', varlist)], flag_df)
+}
+
+std_data_analysis_df %>% filter(PROVIDER_ID == "400127")
+all_data_df %>% filter(PROVIDER_ID == "400127")
+
+measure_om_cnt      <- nrow(outcomes_mortality)
+measure_os_cnt      <- nrow(outcomes_safety)
+measure_or_cnt      <- nrow(outcomes_readmission)
+measure_ptexp_cnt   <- nrow(ptexp)
+measure_process_cnt <- nrow(process)
+
+outcome_mortality_df   <- grp_score(std_data_analysis_df, measure_om)
+outcome_safety_df      <- grp_score(std_data_analysis_df, measure_os)
+outcome_readmission_df <- grp_score(std_data_analysis_df, measure_or)
+ptexpt_df              <- grp_score(std_data_analysis_df, measure_ptexp)
+process_df             <- grp_score(std_data_analysis_df, measure_process)
+```
+
+
+
+# 2 - Second Stage_Weighted Average and Categorize Star_2021Apr_E_peer
+
+
+```{r}
+all_df <-
+  ptexpt_df %>%
+  select(PROVIDER_ID, Std_PatientExp_score = grp_score) %>%
+  inner_join(
+    outcome_safety_df %>%
+      select(PROVIDER_ID, Std_Outcomes_Safety_score = grp_score),
+    by = 'PROVIDER_ID'
+  ) %>%
+  inner_join(
+    outcome_mortality_df %>%
+      select(PROVIDER_ID, Std_Outcomes_Mortality_score = grp_score),
+    by = 'PROVIDER_ID'
+  ) %>%
+  inner_join(
+    outcome_readmission_df %>%
+      select(PROVIDER_ID, Std_Outcomes_Readmission_score = grp_score),
+    by = 'PROVIDER_ID'
+  ) %>%
+  inner_join(
+    process_df %>%
+      select(PROVIDER_ID, Std_Process_score = grp_score),
+    by = 'PROVIDER_ID'
+  )
+
+summary_score <-
+  all_df %>%
+  mutate(
+    std_weight_PatientExperience = 0.22,
+    std_weight_Readmission = 0.22,
+    std_weight_Mortality = 0.22,
+    std_weight_safety = 0.22,
+    std_weight_Process = 0.12,
+    summary_score = NA_real_
+  )
+
+for (k in 1:nrow(all_df)) {
+  grp_score <- unlist(summary_score[k, -1])[1:5]
+  w         <- unlist(summary_score[k, -1])[6:10]
+  i <- ifelse(is.na(grp_score), 1, 0)
+  weight <- w / (1 - sum(w * i))
+  sum_weight_ave <- (1-i) * weight * replace_na(grp_score, 0)
+  summary_score[k, ]$summary_score <- sum(sum_weight_ave)
+}
+```
+
+
+```{r}
+
+report <- function(indsn, measure_OM, measure_OS,
+                   measure_or, measure_ptexp, measure_process) {
+  tibble(
+      PROVIDER_ID = indsn$PROVIDER_ID,
+      Outcomes_Mortality_cnt   = rowSums(!is.na(indsn[, measure_om])),
+      Outcomes_safety_cnt      = rowSums(!is.na(indsn[, measure_OS])),
+      Outcomes_Readmission_cnt = rowSums(!is.na(indsn[, measure_or])),
+      Patient_Experience_cnt   = rowSums(!is.na(indsn[, measure_ptexp])),
+      Process_cnt              = rowSums(!is.na(indsn[, measure_process])),
+    ) %>%
+    mutate(
+      Total_measure_group_cnt = (Outcomes_Mortality_cnt >= 3) +
+        (Outcomes_safety_cnt >= 3) + (Outcomes_Readmission_cnt >= 3) +
+        (Patient_Experience_cnt >= 3) + (Process_cnt >= 3),
+      MortSafe_Group_cnt = (Outcomes_Mortality_cnt >= 3) +
+        (Outcomes_safety_cnt >= 3),
+      report_indicator = as.integer(
+        (MortSafe_Group_cnt >= 1) & (Total_measure_group_cnt >= 3)
+      )
+    )
+}
+
+report_indicator <- report(std_data_analysis_df, measure_om, measure_os,
+                           measure_or, measure_ptexp, measure_process)
+
+summary_score21 <-
+  summary_score %>%
+  inner_join(report_indicator, by = 'PROVIDER_ID') %>%
+  arrange(PROVIDER_ID)
+
+summary_score22 <-
+  summary_score21 %>%
+  filter(report_indicator == 1) %>%
+  mutate(
+    total_grp = (Outcomes_Mortality_cnt >= 3) + (Outcomes_safety_cnt >= 3) + 
+      (Outcomes_Readmission_cnt >= 3) + (Patient_Experience_cnt >= 3) +
+      (Process_cnt >= 3),
+    cnt_grp = case_when(
+      Total_measure_group_cnt == 3 ~ '1) # of groups=3       ',
+      Total_measure_group_cnt == 4 ~ '2) # of groups=4       ',
+      Total_measure_group_cnt == 5 ~ '3) # of groups=5       '
+    )
+  )
+```
+
+
+This is where the translation fails. The first call to `amap::Kmeans()` in the function `kmeans_macro()` gets the same results as SAS, but the second call doesn't. In SAS, the second call uses the argument `strict=1`, and I haven't found an R implementation of k-means with that option.
+
+```{r}
+
+kmeans_macro <- function(in_df) {
+  s1 <- setNames(
+    quantile(in_df$summary_score, probs = 0.2*(1:5), type=1),
+    str_c("P", 20*(1:5))
+  )
+  s2 <-
+    in_df %>%
+    transmute(
+      PROVIDER_ID,
+      summary_score,
+      P20 = s1['P20'],
+      P40 = s1['P40'],
+      P60 = s1['P60'],
+      P80 = s1['P80'],
+      grp = case_when(
+        summary_score <= P20 ~ 1,
+        summary_score <= P40 ~ 2,
+        summary_score <= P60 ~ 3,
+        summary_score <= P80 ~ 4,
+        TRUE                 ~ 5,
+      )
+    )
+  s3 <-
+    s2 %>%
+    group_by(grp) %>%
+    summarize(
+      NObs = n(),
+      summary_score_Median = median(summary_score)
+    )
+  s33 <-
+    s3 %>%
+    mutate(summary_score = summary_score_Median)
+  seeds2 <- sas_proc_fastclus(in_df$summary_score, iter.max = 1000,
+                              centers = s33$summary_score)$centers
+  km <- sas_proc_fastclus(in_df$summary_score, iter.max = 1000,
+                          centers = seeds2, strict = 1)
+
+  Cluster_mean <- km$centers
+  cluster_sort <-
+    tibble(mean_summary_score_star = Cluster_mean[order(Cluster_mean)]) %>%
+    mutate(cluster = 1:n()) %>%
+    arrange(mean_summary_score_star) %>%
+    mutate(star = 1:n())
+  
+  in_df %>%
+    mutate(cluster = abs(km$cluster)) %>%
+    inner_join(cluster_sort, by = "cluster") %>%
+    select(PROVIDER_ID, cnt_grp, star)
+}
+
+
+cnt_s10 <- summary_score22 %>% filter(total_grp == 3)
+cnt_s20 <- summary_score22 %>% filter(total_grp == 4)
+cnt_s30 <- summary_score22 %>% filter(total_grp == 5)
+
+cnt_s1 <- kmeans_macro(cnt_s10)
+cnt_s2 <- kmeans_macro(cnt_s20)
+cnt_s3 <- kmeans_macro(cnt_s30)
+
+cnt_s_str <-
+  rbind(cnt_s1, cnt_s2, cnt_s3) %>%
+  arrange(PROVIDER_ID)
+
+RESULTS <-
+  summary_score21 %>%
+  left_join(cnt_s_str, by = "PROVIDER_ID")
+```
+
+
+
+```{r}
+
+nation_avg0 <- function(indata, var) {
+  indata %>%
+    summarize({{ var }} := mean(summary_score))
+}
+
+nation_avg_peer <- function(indata, var, gr) {
+  indata %>%
+    group_by({{ gr }}) %>%
+    summarize({{ var }} := mean(summary_score), .groups = "drop") %>%
+    pivot_wider(values_from = {{ var }}, names_from = {{ gr }},
+                names_prefix = "Summary_Score_Nat_peer")
+}
+
+nation_avg <- function(indata, var) {
+  indata %>%
+    filter(total_cnt >= 3) %>%
+    summarize({{ var }} := mean(grp_score, na.rm = TRUE))
+}
+
+summary_avg <- nation_avg0(RESULTS, Summary_Score_Nat)
+summary_avg_peer <- nation_avg_peer(RESULTS, Summary_Score_Nat,
+                                    Total_measure_group_cnt)
+
+outcome_mortality_avg <- nation_avg(outcome_mortality_df, Out_Mrt_Grp_Score_Nat)
+outcome_safety_avg <- nation_avg(outcome_safety_df, Out_Sft_Grp_Score_Nat)
+outcome_readmission_avg <- nation_avg(outcome_readmission_df,
+                                      Out_Readm_grp_Score_Nat)
+ptexp_avg <- nation_avg(ptexpt_df, Pt_Exp_Grp_Score_Nat)
+process_avg <- nation_avg(process_df, Prc_of_Care_Grp_Score_Nat)
+
+NATIONAL_MEAN <-
+  cbind(
+    summary_avg, summary_avg_peer,
+		outcome_mortality_avg, outcome_safety_avg, outcome_readmission_avg,
+		ptexp_avg, process_avg
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Scratch work
+
+```{r}
+temp_info_df <-
+  all_info_df %>% filter(zip_date == "2021-04-01") %>% select(info_df) %>% unnest(info_df)
+official_df <- temp_info_df %>% select(PROVIDER_ID = `Facility ID`, `Hospital overall rating`)
+
+official_df
+actual_star_df
+
+#official_df %>%
+my_star_df %>%
+  full_join(official_df, by = c("provider_id"="PROVIDER_ID")) %>%
+  count(`Hospital overall rating`, stars)
+
+weird_prov_ids <-
+  my_star_df %>%
+  full_join(official_df, by = c("provider_id"="PROVIDER_ID")) %>%
+  filter(replace_na(`Hospital overall rating`, "Not Available") == "Not Available") %>%
+  filter(!is.na(stars)) %>%
+  pull(provider_id)
+
+temp_info_df %>%
+  filter(`Facility ID` %in% weird_prov_ids)
+
+all_data_df %>% filter(PROVIDER_ID %in% weird_prov_ids)
+RESULTS %>% filter(PROVIDER_ID %in% weird_prov_ids)
+
+all_sas_df %>% filter(zip_date == "2020-10-01") %>% select(sas_input_df) %>% unnest(sas_input_df)
+```
+
+
+
+
+```{r}
+my_star_df <-
+  RESULTS %>%
+  select(provider_id = PROVIDER_ID, stars = star)
+actual_star_df <-
+  all_info_df %>%
+  filter(zip_date == "2021-04-01") %>%
+  select(info_df) %>%
+  unnest(info_df) %>%
+  select(provider_id = `Facility ID`, stars = `Hospital overall rating`) %>%
+  mutate(
+    stars = ifelse(stars == "Not Available", NA_character_, stars),
+    stars = as.integer(stars)
+  )
+
+my_star_df %>%
+  transmute(provider_id, my_stars = stars) %>%
+  full_join(
+    actual_star_df %>%
+      transmute(provider_id, actual_stars = stars),
+    by = "provider_id"
+  ) %>%
+  mutate(
+    my_stars = ifelse(is.na(my_stars), "NA", as.character(my_stars)),
+    actual_stars = ifelse(is.na(actual_stars), "NA", as.character(actual_stars)),
+    same = (my_stars == actual_stars)
+  ) %>%
+  count(same)
+```
+
+
+```{r}
+summary_df <-
+  RESULTS %>%
+  select(PROVIDER_ID, summary_score, cnt_grp, star)
+
+std_score_re <- "Std_(.*)_score"
+std_weight_re <- "std_weight_(.*)"
+
+get_std_columns <- function(df, col_re) {
+  df <- RESULTS %>% select(PROVIDER_ID, matches(col_re))
+  colnames(df)[2:ncol(df)] <-
+    sapply(colnames(df)[2:ncol(df)], function(x) str_match(x, col_re)[1,2])
+  df
+}
+score_df <- get_std_columns(RESULTS, std_score_re)
+weight_df <- get_std_columns(RESULTS, std_weight_re)
+
+new_colnames <- c("PROVIDER_ID", "PatientExperience", "Readmission",
+                  "Mortality", "Safety", "Process")
+colnames(weight_df) <- new_colnames
+score_df <- score_df %>%
+  select(PROVIDER_ID, PatientExp, Outcomes_Readmission,
+         Outcomes_Mortality, Outcomes_Safety, Process)
+colnames(score_df) <- new_colnames
+
+summary_df
+score_df
+weight_df
+```
+
+
+
+```{r}
+actual_df <- read.csv("star_2021apr_cms.csv", colClasses = "character") %>%
+  mutate(actual_stars = as.integer(star))
+
+RESULTS$PROVIDER_ID[!(RESULTS$PROVIDER_ID %in% actual_df$PROVIDER_ID)]
+actual_df$PROVIDER_ID[!(actual_df$PROVIDER_ID %in% RESULTS$PROVIDER_ID)]
+
+all_data_df %>% filter(PROVIDER_ID == "400127")
+
+RESULTS %>% select(PROVIDER_ID, star, cnt_grp) %>%
+  full_join(actual_df %>% select(PROVIDER_ID, actual_stars), by = "PROVIDER_ID") %>%
+  mutate(same = (star == actual_stars)) %>%
+  count(same, star, actual_stars)
+
+bad_provider_ids <-
+  RESULTS %>% select(PROVIDER_ID, star, cnt_grp) %>%
+  full_join(actual_df %>% select(PROVIDER_ID, actual_stars), by = "PROVIDER_ID") %>%
+  mutate(same = (star == actual_stars)) %>%
+  filter(is.na(same) | !same) %>%
+  pull(PROVIDER_ID)
+
+RESULTS %>% filter(PROVIDER_ID %in% bad_provider_ids) %>% count(star)
+actual_df %>% filter(PROVIDER_ID %in% bad_provider_ids) %>% count(star)
+
+weird_provider_ids <-
+  actual_df %>% filter(PROVIDER_ID %in% bad_provider_ids, star != "") %>% pull(PROVIDER_ID)
+
+RESULTS %>%
+  filter(PROVIDER_ID %in% weird_provider_ids)
+
+all_data_df %>%
+  filter(PROVIDER_ID %in% weird_provider_ids)
+```
+
+

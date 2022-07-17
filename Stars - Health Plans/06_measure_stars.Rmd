@@ -1,0 +1,137 @@
+---
+title: "Measure Stars"
+output:
+html_notebook: default
+---
+
+```{r}
+source("init.R")
+load(file.path(dirs$rdata, "04_measure_df.RData"))
+```
+
+
+```{r}
+# file_vec <- get_unzipped_files_by_pattern("(part.[cd])?.*stars?[^/-]*csv$")
+# 
+# star_file_df <-
+#   tibble(
+#     star_year = str_sub(names(file_vec), end = 4L),
+#     filename = unname(file_vec)
+#   ) %>%
+#   mutate(
+#     part_c_only = grepl("part.?c[^/]*$", filename, ignore.case = TRUE),
+#     part_d_only = grepl("part.?d[^/]*$", filename, ignore.case = TRUE),
+#     fall   = grepl("fall.?release", filename, ignore.case = TRUE),
+#     spring = grepl("spring.?release", filename, ignore.case = TRUE)
+#   ) %>%
+#   relocate(filename, .after = spring) %>%
+#   filter(!spring, star_year > 2007) %>%
+#   filter(!grepl("Display Measures", filename)) %>%
+#   filter(!grepl("(Summary|Domain)", filename)) %>%
+#   arrange(star_year, part_d_only)
+# 
+# star_file_df
+# #write.csv(star_file_df, "tables/file_info_stars_temp.csv")
+```
+
+
+The 2010 Part C file seems to have domain-level summary star scores instead of measure-level star scores. The next chunk pulls that one file from the Excel "master table".
+
+```{r}
+one_xls_file <- file.path(
+  dirs$zip, "2010_Plan_Ratings_and_Display_Measures",
+  "2010 Plan Ratings (10_2009)",
+  "2010_Part_C_Report_Card_Master_Table_2009_11_30.xls"
+)
+c_stars_2010_df <-
+  readxl::read_xls(one_xls_file, sheet = "Star",
+                   skip = 3, col_types = "text")[, c(1, 5:37)]
+c_measure_ids_2010 <-
+  measure_df %>%
+  filter(star_year == 2010, part == "C", !display_measure) %>%
+  arrange(measure_id) %>%
+  pull(measure_id)
+colnames(c_stars_2010_df) <- c("contract_id", c_measure_ids_2010)
+
+c_stars_2010_df <-
+  c_stars_2010_df %>%
+  pivot_longer(-contract_id, names_to = "measure_id", values_to = "entry") %>%
+  transmute(star_year = 2010L, contract_id, measure_id, entry)
+
+c_stars_2010_df
+```
+
+
+```{r}
+initial_star_processing <- function(...) {
+  row_df <- list(...)
+  
+  part <- row_df %$% case_when(part_c_only~"C", part_d_only~"D", TRUE~"")
+  measure_ids <- measure_df %>%
+    filter(star_year == row_df$star_year_copy, !display_measure) %>%
+    arrange(measure_id) %>%
+    pull(measure_id)
+  measure_ids <- measure_ids[grepl(str_c("^", part), measure_ids)]
+  
+  read_cols <- row_df %$% c(1, first_col:last_col)
+  df <- row_df %$%
+    read.csv(filename, skip = skip, encoding = encoding,
+             colClasses = "character")[, read_cols]
+  colnames(df) <- c("contract_id", measure_ids)
+  
+  df %>%
+    pivot_longer(-contract_id, names_to = "measure_id", values_to = "entry")
+}
+
+
+star_files_df <-
+  read.csv(file.path(dirs$table, "file_info_stars.csv"))
+
+initial_star_df <-
+  rbind(
+    star_files_df %>%
+      mutate(
+        file_nbr = 1:n(),
+        star_year_copy = star_year
+      ) %>%
+      group_by(star_year, file_nbr) %>%
+      nest() %>%
+      ungroup() %>%
+      mutate(
+        star_file_df = map(data, ~do.call(initial_star_processing, .x))
+      ) %>%
+      select(-file_nbr, -data) %>%
+      unnest(star_file_df),
+    c_stars_2010_df
+  ) %>%
+  mutate(across(all_of(c("contract_id", "measure_id", "entry")),
+                function(x) replace_na(x, ""))) %>%
+  mutate(across(all_of(c("contract_id", "measure_id", "entry")), str_trim)) %>%
+  filter(entry != "") %>%
+  filter(nchar(contract_id) == 5) %>%
+  mutate(entry = fix_non_ascii(entry))
+
+measure_stars_df <-
+  initial_star_df %>%
+  transmute(
+    star_year, measure_id, contract_id,
+    stars = as.integer(case_when(
+      grepl("^[1-5](.*stars?)?$", entry, ignore.case = TRUE) ~
+                                                      str_sub(entry, end = 1L)
+    )),
+    stars_note = case_when(
+      !grepl("^[1-5](.*stars?)?$", entry, ignore.case = TRUE) ~ entry
+    ),
+    stars_original_text = entry
+  )
+
+measure_stars_df
+```
+
+
+```{r}
+save(measure_stars_df,
+     file = file.path(dirs$rdata, "06_measure_stars_df.RData"))
+```
+
+

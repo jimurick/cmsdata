@@ -1,0 +1,122 @@
+---
+title: "SNP Data"
+output:
+html_notebook: default
+---
+
+The purpose of this notebook is to get contracts' Special Needs Plans (SNP) participation for the StarsPartCD project. For Coordinated Care Plans (CCPs), measure requirements depend on whether the contract is categorized as
+
+* **CCP w/o SNP** - no participation
+* **CCP with Only I-SNP** - only participating with Institutional SNP
+* **CCP with SNP** - any other participation
+
+Data was downloaded from here:
+
+<https://www.cms.gov/Research-Statistics-Data-and-Systems/Statistics-Trends-and-Reports/MCRAdvPartDEnrolData/Special-Needs-Plan-SNP-Data>
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+```{r}
+snp_base_url <- "https://www.cms.gov/files/zip/"
+zip_2020_fname <- "snp-comprehensive-report-january-2020.zip"
+zip_2021_fname <- "snp-comprehensive-report-january-2021.zip"
+url_2020_01 <- str_c(snp_base_url, zip_2020_fname)
+url_2021_01 <- str_c(snp_base_url, zip_2021_fname)
+
+download.file(url = url_2020_01, destfile = zip_2020_fname)
+download.file(url = url_2021_01, destfile = zip_2021_fname)
+
+snp_2020_dir <- "SNP_2020_01"
+snp_2021_dir <- "SNP_2021_01"
+unzip(zip_2020_fname, exdir = snp_2020_dir)
+unzip(zip_2021_fname, exdir = snp_2021_dir)
+
+file_2020 <- file.path(snp_2020_dir, "SNP_2020_01", "SNP_2020_01.xls")
+file_2021 <- file.path(snp_2021_dir, "SNP_2021_01", "SNP_2021_01.xls")
+
+sapply(c(file_2020, file_2021), file.exists)
+```
+
+
+
+```{r}
+
+combined_df <-
+  rbind(
+    read_xls(file_2020, skip = 16) %>%
+      transmute(
+        year        = 2020L,
+        contract_id = `Contract Number`,
+        snp_type    = `Special Needs Plan Type`,
+        enrollment  = `Plan Enrollment`
+      ),
+    read_xls(file_2021, skip = 16) %>%
+      transmute(
+        year        = 2021L,
+        contract_id = `Contract Number`,
+        snp_type    = `Special Needs Plan Type`,
+        enrollment  = `Plan Enrollment`
+      )
+  ) %>%
+  filter(str_trim(replace_na(enrollment, '')) != "") %>%
+  distinct(year, contract_id, snp_type) %>%
+  mutate(
+    snp_type = case_when(
+      snp_type == "Chronic or Disabling Condition" ~ "C",
+      snp_type == "Dual-Eligible"                  ~ "D",
+      snp_type == "Institutional"                  ~ "I"
+    ),
+    x = 1
+  ) %>%
+  pivot_wider(names_from = snp_type, values_from = x)
+
+combined_and_categorized_df <-
+  combined_df %>%
+  mutate(
+    snp_type = case_when(
+      is.na(C) & is.na(D) &  is.na(I) ~ "CCP w/o SNP",
+      is.na(C) & is.na(D) & !is.na(I) ~ "CCP with Only I-SNP",
+      TRUE                            ~ "CCP with SNP"
+    )
+  )
+
+combined_and_categorized_df %>%
+  group_by(contract_id) %>%
+  summarize(n = n(), n_snp_types = n_distinct(snp_type), .groups = "drop") %>%
+  filter(n_snp_types > 1)
+
+combined_df %>% filter(contract_id %in% c("H4091", "H6832")) %>% 
+  arrange(contract_id)
+```
+
+
+```{r}
+snp_df <-
+  combined_df %>%
+  group_by(contract_id) %>%
+  summarize(C = max(C), D = max(D), I = max(I), .groups = "drop") %>%
+  mutate(
+    snp_type = case_when(
+      is.na(C) & is.na(D) &  is.na(I) ~ "CCP w/o SNP",
+      is.na(C) & is.na(D) & !is.na(I) ~ "CCP with Only I-SNP",
+      TRUE                            ~ "CCP with SNP"
+    )
+  ) %>%
+  select(-C, -D, -I)
+
+snp_df
+```
+
+```{r}
+snp_filename <- "snp_df.csv"
+write.csv(snp_df, file = snp_filename, row.names = FALSE)
+file.copy(snp_filename,
+          file.path("..", "Stars - Health Plans", "tables", snp_filename))
+```
+
+
+

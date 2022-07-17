@@ -1,0 +1,31 @@
+star_year,part_d_type,filename,skip,nrows,first_col,last_col
+2008,MA-PD,zips/2008_Plan_Ratings/2008 Plan Ratings Fall Release (10_2007)/2008_Part_D_Report_Card_Master_Table_2007_10_25_cutpoints.csv,10,5,2,19
+2008,PDP,zips/2008_Plan_Ratings/2008 Plan Ratings Fall Release (10_2007)/2008_Part_D_Report_Card_Master_Table_2007_10_25_cutpoints.csv,4,5,2,19
+2009,MA-PD,zips/2009_Plan_Ratings/2009 Plan Ratings Fall Release (10_2008)/2009_Part_D_Report_Card_Master_Table_2008_11_06_cutpoints.csv,12,5,2,21
+2009,PDP,zips/2009_Plan_Ratings/2009 Plan Ratings Fall Release (10_2008)/2009_Part_D_Report_Card_Master_Table_2008_11_06_cutpoints.csv,6,5,2,21
+2010,MA-PD,zips/2010_Plan_Ratings_and_Display_Measures/2010 Plan Ratings (10_2009)/2010_Part_D_Report_Card_Master_Table_2009_10_26_threshold.csv,13,5,2,21
+2010,PDP,zips/2010_Plan_Ratings_and_Display_Measures/2010 Plan Ratings (10_2009)/2010_Part_D_Report_Card_Master_Table_2009_10_26_threshold.csv,7,5,2,21
+2011,MA-PD,zips/2011_Plan_Ratings_and_Display_Measures/2011 Plan Ratings Fall Release (10_2010)/2011_Part_D_Report_Card_Master_Table_2010_10_05_threshold.csv,12,5,2,19
+2011,PDP,zips/2011_Plan_Ratings_and_Display_Measures/2011 Plan Ratings Fall Release (10_2010)/2011_Part_D_Report_Card_Master_Table_2010_10_05_threshold.csv,6,5,2,19
+2012,MA-PD,zips/2012_Plan_Ratings_and_Display_Measures/2012 Plan Ratings Fall Release (10_2011)/2012_PartD_Report_Card_Master_Table_2011_10_25_threshold.csv,12,5,3,20
+2012,PDP,zips/2012_Plan_Ratings_and_Display_Measures/2012 Plan Ratings Fall Release (10_2011)/2012_PartD_Report_Card_Master_Table_2011_10_25_threshold.csv,6,5,3,20
+2013,MA-PD,zips/2013_Plan_Ratings_and_Display_Measures/2013 Plan Ratings Fall Release (10_2012)/2013_Part D_Report_Card_Master_Table_2012_10_16_threshold.csv,12,5,2,20
+2013,PDP,zips/2013_Plan_Ratings_and_Display_Measures/2013 Plan Ratings Fall Release (10_2012)/2013_Part D_Report_Card_Master_Table_2012_10_16_threshold.csv,6,5,2,20
+2014,MA-PD,zips/2014_Star_Ratings_and_Display_Measures/2014 Star Ratings Fall Release (10_2013)/2014_Part_D_Report_Card_Master_Table_2013_10_17_cutpoints.csv,3,6,2,17
+2014,PDP,zips/2014_Star_Ratings_and_Display_Measures/2014 Star Ratings Fall Release (10_2013)/2014_Part_D_Report_Card_Master_Table_2013_10_17_cutpoints.csv,10,6,2,17
+2015,MA-PD,zips/2015_Star_Ratings_and_Display_Measures/2015 Star Ratings Fall Release (10_2014)/2015_Report_Card_Master_Table_2014_10_03_D_cutpoints.csv,3,6,2,15
+2015,PDP,zips/2015_Star_Ratings_and_Display_Measures/2015 Star Ratings Fall Release (10_2014)/2015_Report_Card_Master_Table_2014_10_03_D_cutpoints.csv,10,6,2,15
+2016,MA-PD,zips/2016_Star_Ratings_and_Display_Measures/2016 Star Ratings Fall Release (10_2015)/2016_Report_Card_Master_Table_2015_10_02_D_cutpoints.csv,3,5,2,17
+2016,PDP,zips/2016_Star_Ratings_and_Display_Measures/2016 Star Ratings Fall Release (10_2015)/2016_Report_Card_Master_Table_2015_10_02_D_cutpoints.csv,8,6,2,17
+2017,MA-PD,zips/2017_Star_Ratings_and_Display_Measures/2017 Star Ratings Fall Release (10_2016)/2017_Report_Card_Master_Table_2016_10_26_D_cutpoints.csv,3,5,2,17
+2017,PDP,zips/2017_Star_Ratings_and_Display_Measures/2017 Star Ratings Fall Release (10_2016)/2017_Report_Card_Master_Table_2016_10_26_D_cutpoints.csv,9,5,2,17
+2018,MA-PD,zips/2018-Star-Ratings-and-Display-Measures/2018 Star Ratings Fall Release (11_2017)/2018_Report_Card_Master_Table_2017_11_01_D_cutpoints.csv,3,5,2,16
+2018,PDP,zips/2018-Star-Ratings-and-Display-Measures/2018 Star Ratings Fall Release (11_2017)/2018_Report_Card_Master_Table_2017_11_01_D_cutpoints.csv,9,5,2,16
+2019,MA-PD,zips/2019-Part-C-and-D-Medicare-Star-Ratings-Data-v04-12-2019/2019 Star Ratings Fall Release (11_2018)/2019_Report_Card_Master_Table_2018_11_13_D_cutpoints.csv,3,5,2,16
+2019,PDP,zips/2019-Part-C-and-D-Medicare-Star-Ratings-Data-v04-12-2019/2019 Star Ratings Fall Release (11_2018)/2019_Report_Card_Master_Table_2018_11_13_D_cutpoints.csv,9,5,2,16
+2020,MA-PD,zips/2020-Star-Ratings-Data-Table-Oct-21-2019/2020 Star Ratings Data Table - Part D Cutpoints (Oct 21 2019).csv,3,5,2,16
+2020,PDP,zips/2020-Star-Ratings-Data-Table-Oct-21-2019/2020 Star Ratings Data Table - Part D Cutpoints (Oct 21 2019).csv,9,5,2,16
+2021,MA-PD,zips/2021-star-ratings-data-table-oct-08-2020/2021 Star Ratings Data Table - Part D Cutpoints (Oct 08 2020).csv,3,5,2,16
+2021,PDP,zips/2021-star-ratings-data-table-oct-08-2020/2021 Star Ratings Data Table - Part D Cutpoints (Oct 08 2020).csv,8,5,2,16
+2022,MA-PD,zips/2022-star-ratings-data-table-oct-06-2021/2022 Star Ratings Data Table - Part D Cutpoints (Oct 06 2021).csv,3,5,2,14
+2022,PDP,zips/2022-star-ratings-data-table-oct-06-2021/2022 Star Ratings Data Table - Part D Cutpoints (Oct 06 2021).csv,8,5,2,14

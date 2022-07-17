@@ -1,0 +1,15 @@
+star_year,measure_id,measure_name,ncqa_code
+2022,C01,Breast Cancer Screening,BCS
+2022,C02,Colorectal Cancer Screening,COL
+2022,C04,Monitoring Physical Activity,PAO
+2022,C06,Care for Older Adults - Medication Review,COA - Medication Review
+2022,C07,Care for Older Adults - Pain Assessment,COA - Pain Screening
+2022,C08,Osteoporosis Management in Women who had a Fracture,OMW
+2022,C09,Diabetes Care - Eye Exam,CDC – Eye Exam
+2022,C10,Diabetes Care - Kidney Disease Monitoring,CDC – Nephropathy
+2022,C11,Diabetes Care - Blood Sugar Controlled,CDC – HbA1c Poor Control
+2022,C12,Rheumatoid Arthritis Management,ART
+2022,C13,Reducing the Risk of Falling,FRM
+2022,C14,Improving Bladder Control,MUI
+2022,C15,Medication Reconciliation Post-Discharge,MRP
+2022,C16,Statin Therapy for Patients with Cardiovascular Disease,SPC

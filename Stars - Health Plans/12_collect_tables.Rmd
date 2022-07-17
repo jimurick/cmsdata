@@ -1,0 +1,973 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+```
+
+
+```{r}
+rdata_files <- c(
+  "02_domain_stars_df.RData",
+  "03_display_measures_df.RData",
+  "03_display_measure_values_df.RData",
+  "04_measure_df.RData",
+  "05_measure_values_df.RData",
+  "06_measure_stars_df.RData",
+  "07_cut_point_df.RData",
+  "07_measure_star_ranges_df.RData",
+  "08_contract_df.RData",
+  "09_summary_stars_df.RData",
+  "10_cai_df.RData",
+  "11_disenrollment_df.RData"
+)
+
+
+for (filename in rdata_files) {
+  load(file.path(dirs$rdata, filename))
+}
+domain_stars_df
+measure_df
+measure_values_df
+measure_stars_df
+cut_point_df
+measure_star_ranges_df
+summary_stars_df
+contract_df
+cai_df
+disenrollment_df
+```
+
+
+```{r}
+load(file.path(dirs$rdata, "04_measure_df.RData"))
+load(file.path(dirs$rdata, "07_measure_star_ranges_df.RData"))
+
+measure_df <-
+  measure_df %>%
+  left_join(
+    measure_star_ranges_df %>%
+      distinct(star_year, measure_id, higher_is_better),
+    by = c("star_year", "measure_id")
+  )
+
+missing_measures <-
+  measure_df %>%
+  filter(is.na(higher_is_better)) %>%
+  pull(measure_code)
+
+more_biggers_more_betters_df <-
+  measure_df %>%
+  filter(measure_code %in% missing_measures, !is.na(higher_is_better)) %>%
+  distinct(measure_code, higher_is_better) %>%
+  group_by(measure_code) %>%
+  summarize(
+    bib2 = max(higher_is_better),
+    n_values = n_distinct(higher_is_better),
+    .groups = "drop"
+  ) %>%
+  filter(n_values == 1) %>%
+  select(-n_values)
+
+measure_df <-
+  measure_df %>%
+  left_join(more_biggers_more_betters_df, by = "measure_code") %>%
+  mutate(
+    higher_is_better = ifelse(is.na(higher_is_better), bib2, higher_is_better)
+  ) %>%
+  select(-bib2)
+
+sql_measure_star_ranges_df <-
+  measure_star_ranges_df %>%
+  mutate(
+    lower_bound = ifelse(lower_bound == -Inf, -1e6, lower_bound),
+    upper_bound = ifelse(upper_bound ==  Inf,  1e6, upper_bound)
+  )
+
+measure_df
+sql_measure_star_ranges_df
+```
+
+
+
+```{r}
+load(file.path(dirs$rdata, "05_measure_values_df.RData"))
+load(file.path(dirs$rdata, "06_measure_stars_df.RData"))
+
+measure_scores_df <-
+  rbind(
+    # Star measures
+    measure_stars_df %>%
+      left_join(
+        measure_values_df,
+        by = c("star_year", "measure_id", "contract_id")) %>%
+      inner_join(
+        measure_df %>% select(star_year, measure_id, measure_code),
+        by = c("star_year", "measure_id")
+      ) %>%
+      select(
+        star_year, measure_id, measure_code, contract_id,
+        value, stars, value_note, stars_note,
+        value_original_text, stars_original_text
+      ) %>%
+      left_join(
+        contract_df %>% select(star_year, contract_id, part_d_cut_point_type),
+        by = c("star_year", "contract_id")
+      ) %>%
+      mutate(
+        cut_point_type = case_when(
+          grepl("^C", measure_id) ~ "Part C",
+          TRUE                    ~ part_d_cut_point_type
+        ),
+      ) %>%
+      select(-part_d_cut_point_type) %>%
+      relocate(cut_point_type, .after = stars),
+    # Display measures
+    measure_values_df %>%
+      inner_join(
+        measure_df %>% filter(display_measure) %>%
+          select(star_year, measure_id, measure_code),
+        by = c("star_year", "measure_id")
+      ) %>%
+      transmute(
+        star_year, measure_id, measure_code, contract_id, value,
+        stars = NA_integer_,
+        cut_point_type = NA_character_,
+        value_note,
+        stars_note = NA_character_,
+        value_original_text,
+        stars_original_text = NA_character_
+      )
+  ) %>%
+  distinct()
+
+measure_scores_df
+```
+
+
+
+```{r}
+rdata_files <- c(
+  "02_domain_stars_df.RData",
+  "05_measure_values_df.RData",
+  "07_cut_point_df.RData",
+  "08_contract_df.RData",
+  "09_summary_stars_df.RData",
+  "10_cai_df.RData",
+  "11_disenrollment_df.RData"
+)
+for (filename in rdata_files) {
+  load(file.path(dirs$rdata, filename))
+}
+
+sql_tables <- list(
+  StarsPartCD_Contracts           = contract_df,
+  StarsPartCD_Measures            = measure_df,
+  StarsPartCD_Measure_Scores      = measure_scores_df,
+  StarsPartCD_Measure_Star_Ranges = sql_measure_star_ranges_df,
+  StarsPartCD_Cut_Points          = cut_point_df,
+  StarsPartCD_Domain_Stars        = domain_stars_df,
+  StarsPartCD_Summary_Stars       = summary_stars_df,
+  StarsPartCD_CAI                 = cai_df,
+  StarsPartCD_Disenrollment       = disenrollment_df
+)
+
+save(sql_tables, file = file.path(dirs$rdata, "12_sql_tables.RData"))
+```
+
+
+
+
+
+
+
+# Scratch work
+
+
+```{r}
+load(file = file.path(dirs$rdata, "12_sql_tables.RData"))
+contract_df                <- sql_tables$StarsPartCD_Contracts
+measure_df                 <- sql_tables$StarsPartCD_Measures
+measure_scores_df          <- sql_tables$StarsPartCD_Measure_Scores
+sql_measure_star_ranges_df <- sql_tables$StarsPartCD_Measure_Star_Ranges
+cut_point_df               <- sql_tables$StarsPartCD_Cut_Points
+domain_stars_df            <- sql_tables$StarsPartCD_Domain_Stars
+summary_stars_df           <- sql_tables$StarsPartCD_Summary_Stars
+cai_df                     <- sql_tables$StarsPartCD_CAI
+disenrollment_df           <- sql_tables$StarsPartCD_Disenrollment
+load("C:\\Users\\jimur\\source\\medicarestars\\R\\sysdata.rda")
+```
+
+
+
+```{r}
+measure_scores_dt <- measure_scores_df %>% as.data.table()
+cai_dt <- cai_df %>% as.data.table()
+setnames(cai_dt, old = "summary_type", new = "cut_point_type")
+measure_dt <- measure_df %>% as.data.table()
+
+
+pivot_measure_scores_year <- function(dt, valvar = "stars") {
+  dcast(
+    dt[grepl("^[CD][0-9]{2}$", measure_id)],
+    formula = contract_id ~ measure_id, value.var = valvar
+  )[
+    order(contract_id)
+  ]
+}
+
+sas_star_input_list <-
+  measure_scores_dt %>%
+  split(by = "star_year") %>%
+  lapply(FUN = pivot_measure_scores_year, valvar = "stars")
+
+sas_input_dt <- sas_star_input_list$`2022`
+sas_input_dt
+```
+
+
+
+
+```{r}
+contracts_with_partcd_summary_scores_2022 <- function(measure_stars_2022_dt) {
+
+  # TODO: Check columns exist: "contract_id", C01-C??, D01-D??
+
+  contract_2022_dt <- as.data.table(contract_df %>% filter(star_year == 2022))
+  measure_requirements_2022_dt <- as.data.table(sysdata$measure_requirements_df)
+  count_requirements_2022_dt <- as.data.table(sysdata$count_requirements_df)
+
+  temp_cd_data_dt <-
+    measure_stars_2022_dt[
+      !is.na(stars), .(contract_id, measure_id, stars)
+    ] %>%
+    data.table::merge.data.table(
+      contract_2022_dt[, .(contract_id, contract_type)],
+      by = "contract_id"
+    )
+
+  temp_cd_data_dt[
+    , summary_type := str_c("Part ", str_sub(measure_id, end = 1L))
+  ]
+
+  temp_cd_data_dt <-
+    temp_cd_data_dt %>%
+    data.table::merge.data.table(
+      measure_requirements_2022_dt[
+        !(measure_id %in% c("C25", "D04")),
+        .(measure_id, contract_type)
+      ],
+      by = c("measure_id", "contract_type")
+    )
+
+  data.table::merge.data.table(
+      temp_cd_data_dt[!is.na(stars)],
+      count_requirements_2022_dt[summary_type %in% c("Part C", "Part D")],
+      by = c("contract_type", "summary_type"),
+      allow.cartesian = TRUE
+    )[
+      !is.na(stars) & required & !(measure_id %in% c("C25", "D04")),
+      .(N = .N),
+      by = c("contract_id", "contract_type",
+             "summary_type", "required", "needed")
+    ][
+      N >= needed, .(contract_id, summary_type, N, needed)
+    ]
+}
+
+
+contracts_with_overall_summary_scores_2022 <- function() {
+  temp_all_data_dt <-
+    data.table::merge.data.table(
+      sas_input_stars_dt,
+      part_cd_dt[, .(N = .N), by = "contract_id"][N == 2, "contract_id"],
+      by = "contract_id"
+    ) %>%
+    data.table::merge.data.table(
+      contract_2022_dt[, .(contract_id, contract_type)],
+      by = "contract_id"
+    ) %>%
+    data.table::melt.data.table(
+      id.vars = c("contract_id", "contract_type"),
+      variable.name = "measure_id", value.name = "stars"
+    )
+
+  temp_all_data2_dt <-
+    data.table::merge.data.table(
+      temp_all_data_dt[!is.na(stars)],
+      measure_requirements_2022_dt[
+        !(measure_id %in% c("D02", "D03", "C25", "D04")),
+        .(measure_id, contract_type)
+      ],
+      by = c("measure_id", "contract_type")
+    )[
+      , .(N = .N), by = .(contract_id, contract_type)
+    ] %>%
+    data.table::merge.data.table(
+      count_requirements_2022_dt[
+        summary_type == "Overall", .(contract_type, required, needed)
+      ],
+      by = "contract_type"
+    )
+
+  rbind(
+    part_cd_dt,
+    temp_all_data2_dt[(N >= needed), .(contract_id, summary_type = "Overall")]
+  )
+}
+
+
+
+```
+
+
+
+
+```{r}
+measure_2022_dt <- measure_dt[(star_year == 2022) & (display_measure == FALSE)]
+measure_stars_2022_dt <- measure_scores_dt[(star_year == 2022) & !is.na(stars)]
+cai_2022_dt <- cai_dt[star_year == 2022][, .(contract_id, cut_point_type, cai)]
+
+have_partcd_scores_dt <-
+  contracts_with_partcd_summary_scores_2022(measure_stars_2022_dt)
+#have_partcd_scores_dt <-
+#  have_partcd_scores_dt[(contract_id != "H4091") | (summary_type == "Part D")]
+
+include_exclude_id_dt <-
+  measure_2022_dt[
+    , summary_type := str_c("Part ", part)
+  ][
+    , .(measure_id, summary_type)
+  ]
+test_func <- function(measure_id, measure_id_vec) {
+  if (measure_id %in% measure_id_vec) list("With") else list("With", "Without")
+}
+include_exclude_id_dt$improvement <-
+  lapply(include_exclude_id_dt$measure_id, test_func, c("C25", "D04"))
+include_exclude_id_dt$mpf <-
+  lapply(include_exclude_id_dt$measure_id, test_func, "D07")
+include_exclude_id_dt <-
+  merge(
+    include_exclude_id_dt[, .(mpf = unlist(mpf)), by = measure_id],
+    include_exclude_id_dt[, .(improvement = unlist(improvement)),
+                          by = .(measure_id)],
+    by = "measure_id"
+  )
+
+temp_measure_dt <-
+  measure_2022_dt[, .(measure_id, higher_is_better, part_weight)]
+
+all_cd_scores_dt <-
+  measure_scores_dt[
+    (star_year == 2022) & !is.na(stars)
+  ][
+    , summary_type := stringr::str_sub(cut_point_type, end = 6L)
+  ] %>%
+  merge(
+    have_partcd_scores_dt[, !"N"], by = c("contract_id", "summary_type")
+  )
+
+all_cd_scores_dt <-
+  all_cd_scores_dt[
+    , .(measure_id, contract_id, cut_point_type, summary_type, stars, needed)
+  ] %>%
+  merge(temp_measure_dt, by = "measure_id") %>%
+  merge(
+    include_exclude_id_dt,
+    by = c("measure_id"), allow.cartesian = TRUE
+  )
+
+
+temp_dt <-
+  all_cd_scores_dt[
+    ,
+    .(
+      star_avg = weighted.mean(stars, part_weight),
+      star_sqr = weighted.mean(stars^2, part_weight),
+      n = .N
+    ),
+    by = .(contract_id, summary_type, cut_point_type, improvement, mpf, needed)
+  ][
+    n < needed
+  ][
+    , star_var := (star_sqr - star_avg^2) * n / (n - 1)
+  ][
+    ,
+    .(star_dt = .(data.table(contract_id, cut_point_type, star_avg, star_var))),
+    by = .(summary_type, improvement, mpf)
+  ]
+
+get_percentiles <- function(dt, dt_col, probs) {
+  unname(quantile(dt[[dt_col]], probs = probs, type = 1))
+}
+temp2_dt <-
+  temp_dt[
+    , `:=`(
+      avg_65 = sapply(.SD[[1]], get_percentiles, "star_avg", 0.65),
+      avg_85 = sapply(.SD[[1]], get_percentiles, "star_avg", 0.85),
+      var_30 = sapply(.SD[[1]], get_percentiles, "star_var", 0.3),
+      var_70 = sapply(.SD[[1]], get_percentiles, "star_var", 0.7)
+    ),
+    .SDcols = c("star_dt")
+  ] %>%
+  tidyr::unnest(star_dt) %>%
+  as.data.table()
+
+temp3_dt <-
+  temp2_dt[
+    , `:=`(
+      mean_cat = fcase(star_avg >= avg_85, "high",
+                       star_avg >= avg_65, "medium",
+                       default           = "low"),
+      var_cat  = fcase(star_var >= var_70, "high",
+                       star_var >= var_30, "medium",
+                       default           = "low")
+    )
+  ][
+    ,
+    r_factor := fcase(
+      (var_cat == "low")    & (mean_cat == "high"),   0.4,
+      (var_cat == "medium") & (mean_cat == "high"),   0.3,
+      (var_cat == "low")    & (mean_cat == "medium"), 0.2,
+      (var_cat == "medium") & (mean_cat == "medium"), 0.1,
+      default                                       = 0.0
+    )
+  ][
+    , stars_w_reward := star_avg + r_factor
+  ]
+
+result_dt <-
+  merge(temp3_dt, cai_2022_dt, by = c("contract_id", "cut_point_type"))[
+    , stars_w_reward := 
+        janitor::round_half_up(
+          2 * ifelse(stars_w_reward + cai > 5, 5, stars_w_reward + cai)
+        ) / 2
+  ][
+    , .(stars = max(stars_w_reward)),
+    by = c("contract_id", "summary_type")
+  ][]
+```
+
+
+```{r}
+result_dt
+summary_stars_df %>%
+  filter(star_year == 2022, summary_type %in% c("Part C", "Part D"), !is.na(stars)) %>%
+  select(contract_id, summary_type, real_stars = stars) %>%
+  full_join(result_dt, by = c("contract_id", "summary_type")) %>%
+  mutate(diff = real_stars - stars) %>%
+  count(summary_type, diff) %>%
+  arrange(summary_type, desc(n))
+
+tables_8_9_dt <-
+  temp3_dt[, .(cut_point_type, improvement, mpf, avg_65, avg_85, var_30, var_70)] %>%
+  unique() %>%
+  melt(id.vars = c("cut_point_type", "improvement", "mpf"),
+     variable.name = "stat_percentile", value.name = "value", variable.factor = FALSE) %>%
+  dcast(improvement + mpf + stat_percentile ~ cut_point_type)
+tables_8_9_dt[
+    order(stat_percentile, -improvement, -mpf)
+  ]
+
+# 65%  <-->  311.35
+# 70%  <-->  336
+nrow(temp3_dt[(improvement == "Without") & (mpf == "Without") & (summary_type == "Part C")]) * .7
+junk_dt <-
+  temp3_dt[(improvement == "Without") & (mpf == "Without") & (summary_type == "Part C")] %>%
+  merge(cai_2022_dt, by = c("contract_id", "cut_point_type"))
+
+junk_dt %>%
+  arrange(star_avg) %>%
+  mutate(nbr = 1:n()) %>%
+  relocate(nbr, .before = star_avg) %>%
+  filter(nbr > 308, nbr < 315)
+
+junk_dt %>%
+  arrange(star_var) %>%
+  mutate(nbr = 1:n()) %>%
+  relocate(nbr, .before = star_var) %>%
+  filter(nbr > 333, nbr < 340)
+
+temp3_dt[(improvement == "Without") & (mpf == "Without") & (summary_type == "Part C") & (abs(star_avg - 4.15) < 0.02)][order(star_avg)]
+
+have_partcd_scores_dt[N == needed][order(summary_type)]
+junk_dt[contract_id %in% c("H4172", "H7175")]
+measure_stars_2022_dt[(contract_id %in% c("H4172", "H7175")) & (measure_id == "C25")]
+measure_stars_2022_dt[measure_id == "C25"]
+summary_stars_df %>% filter(contract_id %in% c("H4172", "H7175"), star_year == 2022)
+```
+
+
+```{r}
+temp_df_list <-
+  measure_scores_df %>% split(measure_scores_df$star_year)
+
+measure_id_vec <-
+  measure_df %>%
+  filter(star_year == 2022, !display_measure) %>%
+  pull(measure_id)
+
+
+sas_input_scores_dt <-
+  temp_df_list$`2022` %>%
+  filter(measure_id %in% measure_id_vec) %>%
+  select(contract_id, measure_id, value) %>%
+  pivot_wider(id_cols = contract_id,
+              names_from = measure_id, values_from = value) %>%
+  as.data.table()
+
+sas_input_stars_dt <-
+  temp_df_list$`2022` %>%
+  filter(measure_id %in% measure_id_vec) %>%
+  select(contract_id, measure_id, stars) %>%
+  pivot_wider(id_cols = contract_id,
+              names_from = measure_id, values_from = stars) %>%
+  as.data.table()
+
+sas_input_scores_dt
+sas_input_stars_dt
+
+sas_input_stars_dt
+```
+
+
+```{r}
+sas_input_stars_dt
+load("C:\\Users\\jimur\\source\\medicarestars\\R\\sysdata.rda")
+
+measure_requirements_2022_dt <- as.data.table(sysdata$measure_requirements_df)
+count_requirements_2022_dt <- as.data.table(sysdata$count_requirements_df)
+contract_2022_dt <-
+  contract_df %>% filter(star_year == 2022) %>% as.data.table()
+
+
+contracts_with_summary_scores_2022 <- function(sas_input_stars_dt) {
+  
+  measure_requirements_2022_dt <- as.data.table(sysdata$measure_requirements_df)
+  count_requirements_2022_dt <- as.data.table(sysdata$count_requirements_df)
+
+  temp_cd_data_dt <-
+    data.table::merge.data.table(
+      sas_input_stars_dt,
+      contract_2022_dt[, .(contract_id, contract_type)],
+      on = "contract_id"
+    ) %>%
+    data.table::melt.data.table(
+      id.vars = c("contract_id", "contract_type"),
+      variable.name = "measure_id", value.name = "stars"
+    )
+  
+  temp_cd_data_dt[, summary_type := str_c("Part ", str_sub(measure_id, end = 1L))]
+  
+  temp_cd_data_dt <-
+    data.table::merge.data.table(
+      temp_cd_data_dt,
+      measure_requirements_2022_dt[
+        !(measure_id %in% c("C25", "D04")),
+        .(measure_id, contract_type)
+      ],
+      on = c("measure_id", "contract_type")
+    )
+  
+  part_cd_dt <-
+    data.table::merge.data.table(
+      temp_cd_data_dt[!is.na(stars)],
+      count_requirements_2022_dt[summary_type %in% c("Part C", "Part D")],
+      by = c("contract_type", "summary_type"),
+      allow.cartesian = TRUE
+    )[
+      !is.na(stars) & required & !(measure_id %in% c("C25", "D04")),
+      .(N = .N),
+      by = c("contract_id", "contract_type", "summary_type", "required", "needed")
+    ][
+      N >= needed, .(contract_id, summary_type, N)
+    ]
+  
+  temp_all_data_dt <-
+    data.table::merge.data.table(
+      sas_input_stars_dt,
+      part_cd_dt[, .(N = .N), by = "contract_id"][N == 2, "contract_id"],
+      by = "contract_id"
+    ) %>%
+    data.table::merge.data.table(
+      contract_2022_dt[, .(contract_id, contract_type)],
+      by = "contract_id"
+    ) %>%
+    data.table::melt.data.table(
+      id.vars = c("contract_id", "contract_type"),
+      variable.name = "measure_id", value.name = "stars"
+    )
+  
+  temp_all_data2_dt <-
+    data.table::merge.data.table(
+      temp_all_data_dt[!is.na(stars)],
+      measure_requirements_2022_dt[
+        !(measure_id %in% c("D02", "D03", "C25", "D04")),
+        .(measure_id, contract_type)
+      ],
+      by = c("measure_id", "contract_type")
+    )[
+      , .(N = .N), by = .(contract_id, contract_type)
+    ] %>%
+    data.table::merge.data.table(
+      count_requirements_2022_dt[
+        summary_type == "Overall", .(contract_type, required, needed)
+      ],
+      by = "contract_type"
+    )
+  
+  rbind(
+    part_cd_dt,
+    temp_all_data2_dt[(N >= needed), .(contract_id, summary_type = "Overall", N)]
+  )
+}
+
+new_df <- contracts_with_summary_scores_2022(sas_input_stars_dt)
+new_df
+```
+
+
+```{r}
+contracts_with_2022_summary_scores <- function(df22) {
+
+  #df22_req_cols <- c("measure_id", "contract_id", "contract_type", "stars")
+  #check_columns_are_present(df22_req_cols, df22, "df22 is missing columns:")
+
+  part_cd_df <-
+    df22 %>%
+    dplyr::inner_join(sysdata$measure_requirements_df %>%
+                      rename(is_required = required) %>%
+                      mutate(summary_type = str_c("Part ", part)),
+                      by = c("measure_id", "contract_type")) %>%
+    dplyr::inner_join(sysdata$count_requirements_df,
+                      by = c("contract_type", "summary_type")) %>%
+    dplyr::filter(#is_required, 
+                  !(measure_id %in% c("C25", "D04"))) %>%
+    dplyr::group_by(contract_id, contract_type, summary_type, needed) %>%
+    dplyr::summarize(
+      n_stars = sum(!is.na(stars)),
+      .groups = "drop"
+    ) %>%
+    dplyr::filter(n_stars >= needed) %>%
+    dplyr::select(contract_id, summary_type, M = n_stars)
+
+  overall_df <-
+    df22 %>%
+    dplyr::inner_join(part_cd_df %>% count(contract_id) %>%
+                        filter(n == 2) %>% select(contract_id),
+                      by = "contract_id") %>%
+    dplyr::inner_join(sysdata$measure_requirements_df,
+                      by = c("measure_id", "contract_type")) %>%
+    dplyr::filter(#required,
+                  !(measure_id %in% c("D02","D03","C25","D04"))) %>%
+    dplyr::group_by(contract_id, contract_type) %>%
+    dplyr::summarize(
+      n_stars = sum(!is.na(stars)),
+      .groups = "drop"
+    ) %>%
+    dplyr::inner_join(
+      sysdata$count_requirements_df %>%
+        dplyr::filter(summary_type == "Overall"),
+      by = c("contract_type")
+    ) %>%
+    dplyr::filter(n_stars >= needed) %>%
+    dplyr::transmute(contract_id, summary_type = "Overall", M = n_stars)
+
+  rbind(part_cd_df, overall_df)
+}
+
+old_input_df <-
+  measure_scores_df %>%
+  filter(star_year == 2022) %>%
+  inner_join(
+    contract_df %>% filter(star_year == 2022) %>%
+      distinct(contract_id, contract_type),
+    by = "contract_id"
+  )
+old_df <- contracts_with_2022_summary_scores(old_input_df)
+```
+
+
+```{r}
+old_input_df %>%
+  dplyr::inner_join(sysdata$measure_requirements_df %>%
+                      rename(is_required = required) %>%
+                      mutate(summary_type = str_c("Part ", part)),
+                    by = c("measure_id", "contract_type")) %>%
+  dplyr::inner_join(sysdata$count_requirements_df,
+                    by = c("contract_type", "summary_type"))
+```
+
+
+
+```{r}
+old_df %>%
+  mutate(in_old = "old") %>%
+  full_join(new_df %>% mutate(in_new = "new"), by = c("contract_id", "summary_type")) %>%
+  count(in_new, in_old)
+
+
+sum_df <- summary_stars_df %>%
+  filter(star_year == 2022, !is.na(stars)) %>%
+  select(contract_id, summary_type, stars)
+
+old_df %>% left_join(sum_df, by = c("contract_id", "summary_type")) %>% count(is.na(stars))
+sum_df %>% left_join(old_df, by = c("contract_id", "summary_type")) %>% count(is.na(stars))
+
+old_df %>% anti_join(sum_df, by = c("contract_id", "summary_type"))
+old_df %>% filter(contract_id == "H4091")
+contract_df %>% filter(star_year == 2022, contract_id == "H4091") %>% t
+contract_df %>% filter(star_year == 2022, contract_type == "CCP with Only I-SNP")
+sysdata$count_requirements_df %>% filter(contract_type == "CCP with Only I-SNP")
+measure_scores_df %>% filter(star_year == 2022, contract_id == "H4091", !is.na(stars))
+measure_scores_df %>%
+  filter(star_year == 2022, contract_id == "H4091", !is.na(stars)) %>%
+  filter(!(measure_id %in% c("C25", "D04"))) %>%
+  count(cut_point_type)
+sysdata$count_requirements_df %>%
+  pivot_wider(contract_type, names_from = summary_type, values_from = needed)
+summary_stars_df %>% filter(contract_id == "H4091") %>% arrange(desc(star_year))
+```
+
+
+
+
+
+```{r}
+measures_2022_df <-
+  measure_df %>%
+  filter(star_year == 2022, !display_measure) %>%
+  filter(!(data_source %in% c("CAHPS", "Star Ratings	"))) %>%
+  select(measure_id, measure_name, part, domain_id,
+         weight = part_weight, higher_is_better) %>%
+  arrange(measure_id)
+
+measure_df %>%
+  filter(star_year == 2022) %>%
+  filter(grepl("Improvement", measure_name))
+
+sas_input_df <-
+  measure_scores_df %>%
+  filter(star_year == 2022, grepl("^[CD][0-9]{2}$", measure_id)) %>%
+  select(measure_id, contract_id, value) %>%
+  pivot_wider(names_from = measure_id, values_from = value) %>%
+  select_at(c("contract_id", measures_2022_df$measure_id))
+
+library(data.table)
+sas_input_dt <- as.data.table(sas_input_df)
+measure_dt <-
+  measure_df %>%
+  filter(star_year == 2022, !display_measure) %>%
+  transmute(
+    measure_id,
+    higher_is_better = higher_is_better == 1,
+    domain_id,
+    weight = part_weight,
+    measure_name = measure_standard_name
+  ) %>%
+  as.data.table()
+```
+
+
+```{r}
+
+add_folds <- function(value_vec) {
+  data.table(
+    value = value_vec,
+    fold = caret::createFolds(value_vec, k = 10, list = FALSE)
+  )
+}
+
+cluster_func <- function(value_vec, higher_is_better) {
+  dist_mat <- dist(value_vec, method = "euclidean")
+  hc_avg   <- hclust(dist_mat, method = "ward.D2")
+  cut_avg  <- cutree(hc_avg, k = 5)
+  
+  agg_func <- ifelse(higher_is_better, min, max)
+  
+  data.table(grp = cut_avg, value = value_vec)[
+      , .(cut_point = agg_func(value)), by = "grp"
+    ][
+      order(cut_point, decreasing = !higher_is_better), stars := .I
+    ][
+      order(stars), .(stars, cut_point)
+    ]
+}
+
+
+non_cahps_cut_points <- function(sas_input_dt, measure_dt) {
+  
+  temp_dt <-
+    melt(
+      sas_input_dt, id.vars = "contract_id",
+      variable.name = "measure_id", value.name = "value"
+    )[
+      order(measure_id, contract_id)
+    ][
+      !is.na(value), !"contract_id"
+    ][
+      , .(score_vec = .(value)), by = .(measure_id)
+    ][
+      , `:=`(score_dt = lapply(score_vec, add_folds))
+    ][
+      , score_dt[[1]], by = .(measure_id)
+    ][]
+  
+  temp_dt <-
+    temp_dt[
+      , drop_fold := rep(list(1:10), nrow(temp_dt))
+    ][
+      , .(drop_fold = drop_fold[[1]]), by = .(measure_id, value, fold)
+    ][
+      fold != drop_fold, !"fold"
+    ][
+      measure_dt[, .(measure_id, higher_is_better)],
+      on = "measure_id", nomatch = 0
+    ][
+      , .(value_vec = .(value)), by = .(measure_id, drop_fold, higher_is_better)
+    ][
+      , .(measure_id, higher_is_better, drop_fold,
+          cluster_dt = map2(value_vec, higher_is_better, cluster_func))
+    ][
+      , cluster_dt[[1]], by = .(measure_id, higher_is_better, drop_fold)
+    ][
+      , .(cut_point = mean(cut_point)),
+      by = .(measure_id, higher_is_better, stars)
+    ][]
+  
+  dcast(temp_dt, stars ~ measure_id, value.var = "cut_point")[stars > 1]
+}
+
+
+x_dt <- non_cahps_cut_points(sas_input_dt, measure_dt)
+x_dt
+
+hib_vec <- setNames(measure_dt$higher_is_better, measure_dt$measure_id)
+meas_id <- "C01"
+
+make_star_cut_func <- function(measure_id, higher_is_better, cp_dt) {
+  cut_point_vec <- cp_dt[[measure_id]]
+  if (higher_is_better) {
+    cut_point_vec <- c(-Inf, cut_point_vec, Inf)
+  } else {
+    cut_point_vec <- c(Inf, cut_point_vec, -Inf)
+  }
+  function(x) {
+    cut(x, breaks = cut_point_vec, include.lowest = higher_is_better) %>%
+      as.integer()
+  }
+}
+
+temp_non_cahps_dt <- measure_dt[measure_id %in% colnames(x_dt)]
+
+cut_point_funcs <-
+  setNames(
+    temp_non_cahps_dt %$%
+      map2(measure_id, higher_is_better, make_star_cut_func, x_dt),
+    temp_non_cahps_dt$measure_id
+  )
+
+
+cut_point_funcs$C01(-5)
+```
+
+
+
+
+```{r}
+
+df <-
+  measure_star_ranges_df %>%
+  count(star_year, cut_point_type, measure_id) %>%
+  filter(n < 5) %>%
+  select(-n) %>%
+  inner_join(measure_star_ranges_df,
+             by = c("star_year", "cut_point_type", "measure_id")) %>%
+  select(star_year, cut_point_type, measure_id, higher_is_better, stars) %>%
+  arrange(star_year, cut_point_type, measure_id, stars) %>%
+  nest(data = stars) %>%
+  mutate(
+    data = map(data, ~mutate(.x, star_order = 1L:n())),
+    cut_index_to_star_func = map(data, ~function(i) .x$stars[i])
+  )
+
+cut_point_df
+
+  unnest(data) %>%
+  pivot_wider(names_from = stars, values_from = x) %>%
+  mutate(across(all_of(as.character(1:5)), function(x) replace_na(x, ""))) %>%
+  arrange(star_year, measure_id, cut_point_type) %>%
+  select(star_year, cut_point_type, measure_id, `1`, `2`, `3`, `4`, `5`)
+```
+
+
+
+```{r}
+measure_star_ranges_df %>%
+  filter(star_year == 2008, measure_id == "D13") %>%
+  arrange(stars, cut_point_type)
+
+contract_df %>%
+  mutate(x = is.na(org_type)) %>%
+  count(star_year, x) %>%
+  pivot_wider(names_from = x, values_from = n) %>%
+  arrange(star_year)
+
+cp_type_df <-
+  contract_df %>%
+  transmute(
+    star_year, contract_id,
+    d_cut_point_type = case_when(
+      is.na(org_type)        ~ NA_character_,
+      grepl("PDP", org_type) ~ "Part D PDP",
+      TRUE                   ~ "Part D MA-PD"
+    )
+  )
+```
+
+
+```{r}
+contract_df
+measure_df
+measure_values_df
+sql_measure_star_ranges_df
+cut_point_df
+domain_stars_df
+summary_stars_df
+cai_df
+disenrollment_df
+```
+
+```{r}
+measure_df %>% count(star_year, display_measure) %>%
+  pivot_wider(names_from=display_measure, values_from=n)
+
+measure_df %>% count(star_year, measure_id) %>% filter(n > 1)
+measure_scores_df %>% count(star_year, measure_id, contract_id) %>%
+  filter(n > 1)
+measure_scores_df %>%
+  filter(star_year == 2020, measure_id == "DMD14", contract_id == "E0654")
+measure_df %>% count(part, display_measure)
+measure_df %>% count(star_year, measure_code) %>% filter(n > 1) %>%
+  arrange(measure_code, star_year)
+measure_df %>% filter(measure_code == 'DMC012022') %>% distinct() %>%
+  arrange(star_year)
+measure_df %>% filter(star_year == 2014, measure_id == "DME01")
+
+measure_history_df %>% filter(measure_code == "DMC012022") %>% arrange(star_year)
+
+measure_scores_df %>% filter(nchar(measure_id) != 3)
+measure_scores_df %>% filter(is.na(stars), is.na(stars_note))
+measure_scores_df %>% filter(star_year == 2008, measure_id == "D01") %>%
+  arrange(contract_id)
+measure_scores_df %>% filter(measure_code == "C012022", contract_id == "H3954") %>%
+  arrange(star_year)
+```
+
+
+
+

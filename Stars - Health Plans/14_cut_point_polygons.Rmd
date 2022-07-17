@@ -1,0 +1,346 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+
+
+```{r}
+source("init.R")
+library(tidyverse)
+library(data.table)
+```
+
+
+```{r}
+load(file = file.path(dirs$rdata, "12_sql_tables.RData"))
+measure_df                 <- sql_tables$StarsPartCD_Measures
+measure_scores_df          <- sql_tables$StarsPartCD_Measure_Scores
+sql_measure_star_ranges_df <- sql_tables$StarsPartCD_Measure_Star_Ranges
+cut_point_df               <- sql_tables$StarsPartCD_Cut_Points
+
+measure_dt <- as.data.table(measure_df)
+```
+
+
+
+```{r}
+scale_max_factor <- 1.2
+
+min_max_values_df <-
+  measure_scores_df %>%
+  filter(!(measure_code %in% c("C252022", "D042022"))) %>%
+  group_by(measure_code) %>%
+  summarize(
+    min_value = min(value, na.rm = TRUE),
+    max_value = max(value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    min_value = ifelse(min_value > 0, 0, min_value),
+    max_value = ifelse(max_value <= 1, 1, scale_max_factor * max_value),
+    min_value = ifelse(min_value < 0, scale_max_factor, 1) * min_value
+  )
+
+temp_no_left_right_df <-
+  sql_measure_star_ranges_df %>%
+  distinct(
+    star_year, measure_id, cut_point_type, stars, higher_is_better,
+    lower_bound, upper_bound
+  ) %>%
+  mutate(
+    polygon_id = str_c(star_year, measure_id, cut_point_type, stars)
+  ) %>%
+  inner_join(
+    measure_df %>% distinct(measure_id, star_year, measure_code),
+    by = c("measure_id", "star_year")
+  ) %>%
+  relocate(measure_code, .before = star_year) %>%
+  inner_join(min_max_values_df, by = c("measure_code")) %>%
+  mutate(
+    upper_bound = pmin(upper_bound, max_value),
+    lower_bound = pmax(lower_bound, min_value)
+  ) %>%
+  select(-min_value, -max_value)
+
+
+first_last_year_df <-
+  temp_no_left_right_df %>%
+  distinct(measure_code, star_year)
+```
+
+
+
+```{r}  
+temp_df <-
+  temp_no_left_right_df %>%
+  left_join(
+    temp_no_left_right_df %>%
+      mutate(star_year = star_year + 1) %>%
+      rename(
+        left_polygon_id = polygon_id,
+        left_lower_bound = lower_bound,
+        left_upper_bound = upper_bound
+      ) %>%
+      select(-higher_is_better, -measure_id),
+    by = c("star_year", "measure_code", "cut_point_type", "stars")
+  ) %>%
+  left_join(
+    first_last_year_df %>%
+      mutate(star_year = star_year + 1, is_first_year = FALSE),
+    by = c("measure_code", "star_year")
+  ) %>%
+  mutate(
+    has_left_poly = !is.na(left_polygon_id),
+    is_first_year = replace_na(is_first_year, TRUE)
+  )
+
+temp_df <-
+  temp_df %>%
+  left_join(
+    temp_no_left_right_df %>%
+      mutate(star_year = star_year - 1) %>%
+      rename(
+        right_polygon_id = polygon_id,
+        right_lower_bound = lower_bound,
+        right_upper_bound = upper_bound
+      ) %>%
+      select(-higher_is_better, -measure_id),
+    by = c("star_year", "measure_code", "cut_point_type", "stars")
+  ) %>%
+  left_join(
+    first_last_year_df %>%
+      mutate(star_year = star_year - 1, is_last_year = FALSE),
+    by = c("measure_code", "star_year")
+  ) %>%
+  mutate(
+    has_right_poly = !is.na(right_polygon_id),
+    is_last_year = replace_na(is_last_year, TRUE)
+  )
+
+
+
+create_polygons <- function(df, star_year) {
+  right_triangle_df <- data.frame(star_year = numeric(0), value = numeric(0))
+  left_triangle_df <- data.frame(star_year = numeric(0), value = numeric(0))
+  if (df$has_right_poly) {
+    right_triangle_df <- tribble(
+        ~star_year,         ~value,
+        star_year,       df$lower_bound,
+        star_year + 0.5, (df$lower_bound + df$right_lower_bound) / 2,
+        star_year + 0.5, (df$upper_bound + df$right_upper_bound) / 2,
+        star_year,       df$lower_bound,
+        star_year + 0.5, (df$upper_bound + df$right_upper_bound) / 2,
+        star_year,       df$upper_bound
+      )
+  }
+  if (df$has_left_poly) {
+    left_triangle_df <- tribble(
+        ~star_year,         ~value,
+        star_year,       df$lower_bound,
+        star_year - 0.5, (df$lower_bound + df$left_lower_bound) / 2,
+        star_year - 0.5, (df$upper_bound + df$left_upper_bound) / 2,
+        star_year,       df$lower_bound,
+        star_year - 0.5, (df$upper_bound + df$left_upper_bound) / 2,
+        star_year,       df$upper_bound
+      )
+  }
+  bind_rows(left_triangle_df, right_triangle_df)
+}
+
+
+triangle_df <-
+  temp_df %>%
+  nest(data = c(lower_bound, upper_bound,
+                left_lower_bound, left_upper_bound,
+                right_lower_bound, right_upper_bound,
+                has_left_poly, has_right_poly)) %>%
+  mutate(
+    poly_df = map2(data, star_year, create_polygons),
+    data = map(
+      data,
+      ~select(.x, lower_bound, upper_bound, has_left_poly, has_right_poly)
+    )
+  ) %>%
+  unnest(data)
+
+star_polygon_dt <-
+  triangle_df %>%
+  select(
+    measure_code,
+    polygon_star_year = star_year,
+    measure_id,
+    cut_point_type,
+    stars,
+    lower_bound,
+    upper_bound,
+    polygon_id,
+    higher_is_better,
+    is_first_year,
+    is_last_year,
+    has_left_poly,
+    has_right_poly,
+    poly_df
+  ) %>%
+  unnest(poly_df) %>%
+  as.data.table()
+```
+
+
+```{r}
+save(star_polygon_dt, file = file.path(dirs$rdata, "14_star_polygon_dt.RData"))
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+triangle_df %>%
+  filter(measure_code == "C012022") %>%
+  select(-star_year) %>%
+  unnest(poly_df) %>%
+  ggplot(aes(star_year, value, group = polygon_id, fill = factor(stars))) +
+    geom_polygon()
+```
+
+
+
+
+
+```{r}
+library(scales)
+
+
+get_measure_code <- function(measure_id, star_year = NA) {
+  m_id <- measure_id
+  s_yr <- star_year
+  if (is.na(s_yr)) {
+    s_yr <- max(measure_dt$star_year)
+  }
+  cd <- unique(measure_dt[measure_id == m_id & star_year == s_yr, measure_code])
+  if (length(cd) != 1) {
+    if (is.na(star_year)) {
+      stop(str_interp("Measure code for measure_id='${measure_id}' not found"))
+    } else{
+      stop(str_interp(str_c("Measure code not found for measure_id=",
+                            "'${measure_id}' and star_year=${star_year}")))
+    }
+  }
+  cd
+}
+
+
+get_extension_polygons <- function(polygon_star_year, lower_bound, upper_bound,
+                                   extend_region_by, first_or_last = "first") {
+  
+  d  <- extend_region_by
+  x  <- polygon_star_year
+  y0 <- lower_bound
+  y1 <- upper_bound
+  
+  if (first_or_last == "first") {
+    data.table(star_year = c(x,  x, x-d,   x, x-d, x-d),
+               value     = c(y0, y1, y1,   y0, y1, y0))
+  } else if (first_or_last == "last") {
+    data.table(star_year = c(x, x+d, x+d,  x, x+d, x ),
+               value     = c(y0, y0, y1,   y0, y1, y1))
+  } else {
+    stop(str_interp("Invalid argument: first_or_last = '${first_or_last}'"))
+  }
+}
+
+
+get_first_and_last_polygons <- function(polygon_dt, extend_region_by,
+                                        first_or_last) {
+  
+      polygon_dt[
+        , .(
+          stars, polygon_id, polygon_star_year, lower_bound, upper_bound,
+          x = pmap(
+            list(polygon_star_year, lower_bound, upper_bound,
+                 extend_region_by = extend_region_by,
+                 first_or_last = first_or_last),
+            get_extension_polygons
+          )
+        )
+      ][
+        , x[[1]], by = .(stars, polygon_id, polygon_star_year)
+      ]
+}
+
+
+get_first_last_extensions <- function(measure_polygon_dt, extend_region_by) {
+
+  first_year_dt <-
+    distinct(measure_polygon_dt[
+        measure_polygon_dt$is_first_year,
+        .(stars, polygon_id, polygon_star_year, lower_bound, upper_bound)
+      ])
+  last_year_dt <-
+    distinct(measure_polygon_dt[
+        measure_polygon_dt$is_last_year,
+        .(stars, polygon_id, polygon_star_year, lower_bound, upper_bound)
+      ])
+  rbind(
+      get_first_and_last_polygons(first_year_dt, extend_region_by, "first"),
+      get_first_and_last_polygons(last_year_dt, extend_region_by, "last")
+    )
+}
+
+
+get_polygon_datatable <- function(
+        star_polygon_dt, measure_code = NA, measure_id = NA, star_year = NA,
+        cut_point_type = "Part C", extend_region_by = 0.2
+) {
+  
+  if (is.na(measure_code) & is.na(measure_id)) {
+    stop("One of measure_code or measure_id is required")
+  } else if (is.na(measure_code)) {
+    m_cd <- get_measure_code(measure_id, star_year)
+  }
+  if (!(m_cd %in% star_polygon_dt$measure_code)) {
+    stop(str_interp("Measure code not found: '${m_cd}'"))
+  }
+  # TODO: Check for C/D conflicts between measure_code and cut_point_type
+  cpt <- cut_point_type
+  
+  measure_polygon_dt <-
+    star_polygon_dt[measure_code == m_cd & cut_point_type == cpt]
+  extensions_dt <- get_first_last_extensions(measure_polygon_dt,
+                                             extend_region_by)
+  rbind(
+      measure_polygon_dt[, .(stars, polygon_id, star_year, value)],
+      extensions_dt[     , .(stars, polygon_id, star_year, value)]
+    )[
+      , stars := factor(stars)
+    ][]
+}
+
+
+
+m_id <- "C01"
+m_cd <- get_measure_code(m_id)
+
+extend_region_by <- 0.25
+
+get_polygon_datatable(
+    star_polygon_dt, measure_id = "C02", extend_region_by = extend_region_by
+  ) %>%
+  ggplot(aes(star_year, value, group = polygon_id, fill = stars)) +
+    geom_polygon() +
+    scale_x_continuous(minor_breaks = 2008L:2022L)
+```
+
+
+
+
+
+

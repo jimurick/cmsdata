@@ -1,0 +1,131 @@
+---
+title: "Domain Star Scores"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+```
+
+
+```{r}
+domain_file_vec <- get_unzipped_files_by_pattern("domain.*csv$")
+correction_vec <-
+  get_unzipped_files_by_pattern("^zips/2010.*part.c.*stars.csv$")
+
+domain_file_df <-
+  tibble(
+    star_year = str_sub(names(domain_file_vec), end = 4L),
+    filename  = unname(domain_file_vec)
+  ) %>%
+  mutate(
+    part_c_only = grepl("part.?c[^/]*$", filename, ignore.case = TRUE),
+    part_d_only = grepl("part.?d[^/]*$", filename, ignore.case = TRUE),
+    fall   = grepl("fall.?release", filename, ignore.case = TRUE),
+    spring = grepl("spring.?release", filename, ignore.case = TRUE)
+  ) %>%
+  relocate(filename, .after = spring) %>% filter(!spring) %>%
+  mutate(file_key = str_c(star_year, ifelse(part_c_only, "C", ""),
+                          ifelse(part_d_only, "D", ""))) %>%
+  relocate(file_key, .before = star_year)
+
+
+domain_file_df[domain_file_df$file_key == "2010C", ]$filename <- correction_vec
+
+
+
+process_one_domain_file <- function(file_key, filename, skip_rows, col_ind) {
+  df <- read.csv(filename, skip = skip_rows,
+                 check.names = FALSE, colClasses = "character")[, col_ind] %>%
+    mutate(across(everything(), str_trim))
+  if (grepl("C$", file_key)) {
+    colname_df <- tibble(domain_id   = paste0("HD", 1:(ncol(df) - 1)),
+                         domain_name = colnames(df)[-1])
+  } else if (grepl("D$", file_key)) {
+    colname_df <- tibble(domain_id   = paste0("DD", 1:(ncol(df) - 1)),
+                         domain_name = colnames(df)[-1])
+  } else {
+    colname_df <- tibble(domain_id   = str_sub(colnames(df)[-1], end = 3L),
+                         domain_name = str_sub(colnames(df)[-1], start = 6L))
+  }
+  colnames(df) <- c("contract_id", colname_df$domain_id)
+  
+  df %>%
+    pivot_longer(all_of(colnames(df)[-1]),
+                 names_to = "domain_id", values_to = "stars") %>%
+    inner_join(colname_df, by = "domain_id") %>%
+    relocate(domain_name, .after = domain_id)
+}
+
+
+domain_stars_df <-
+  tribble(
+  	~file_key, ~skip_rows, ~col_ind,
+  	"2008C",   1,          c(1, 3:7),
+  	"2008D",   1,          c(1, 4:6),
+  	"2009C",   1,          c(1, 5:9),
+  	"2009D",   2,          c(1, 5:8),
+  	"2010C",   1,          c(1, 5:9),
+  	"2010D",   3,          c(1, 4:7),
+  	"2011C",   1,          c(1, 5:9),
+  	"2011D",   3,          c(1, 4:7),
+  	"2012C",   1,          c(1, 5:9),
+  	"2012D",   3,          c(1, 6:9),
+  	"2013C",   1,          c(1, 6:10),
+  	"2013D",   3,          c(1, 6:9),
+  	"2014C",   1,          c(1, 6:10),
+  	"2014D",   1,          c(1, 6:9),
+  	"2015",    1,          c(1, 6:14),
+  	"2016",    1,          c(1, 6:14),
+  	"2017",    1,          c(1, 6:14),
+  	"2018",    1,          c(1, 6:14),
+  	"2019",    1,          c(1, 6:14),
+  	"2020",    1,          c(1, 6:14),
+  	"2021",    1,          c(1, 6:14),
+  	"2022",    1,          c(1, 6:14)
+  ) %>%
+  inner_join(domain_file_df, by = "file_key") %>%
+  mutate(
+    star_year = as.integer(star_year),
+    domain_df = pmap(list(file_key, filename, skip_rows, col_ind),
+                     process_one_domain_file)
+  ) %>%
+  select(star_year, domain_df) %>%
+  unnest(domain_df) %>%
+  filter(str_trim(stars) != "", str_trim(contract_id) != "") %>%
+  mutate(
+    stars = str_trim(gsub("( out of 5)? stars$", "", stars)),
+    stars_note = ifelse(!grepl("^\\d(.\\d)?$", stars), stars, NA_character_),
+    stars = ifelse(grepl("^\\d(.\\d)?$", stars), as.numeric(stars), NA_real_)
+  ) %>%
+  select(star_year, domain_id, domain_name, contract_id, stars, stars_note) %>%
+  mutate(across(all_of(c("domain_name", "stars_note")), fix_non_ascii))
+
+
+domain_stars_df
+```
+
+
+
+```{r}
+save(domain_stars_df, file = file.path(dirs$rdata, "02_domain_stars_df.RData"))
+```
+
+
+
+
+
+# Testing and scratch work
+
+```{r, eval=FALSE}
+
+domain_df
+domain_df %>% count(stars) %>% arrange(desc(n))
+domain_df %>% filter(str_trim(stars) == "") %>% count(star_year)
+domain_df %>% filter(star_year == 2008) %>% count(stars)
+domain_df %>% filter(str_trim(contract_id) == "")
+```
+
+

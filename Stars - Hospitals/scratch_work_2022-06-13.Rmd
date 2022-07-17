@@ -1,0 +1,188 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+```{r}
+library(data.table)
+library(tidyverse)
+```
+
+
+```{r}
+package_dir <- "C:\\Users\\jurick\\temp\\hospital stars\\package"
+new_results_df <-
+  read.csv(file.path(package_dir, "stars_2022.csv"), check.names = FALSE,
+           colClasses = c("PROVIDER_ID"="character"))
+
+geis_hospital_df <-
+  tibble(
+    provider_id = c('390001', '390003', '390006', '390048', '390270', '391300'),
+    hospital_name = c(
+      'GEISINGER-COMMUNITY MEDICAL CENTER', 'GEISINGER-BLOOMSBURG HOSPITAL',
+      'GEISINGER MEDICAL CENTER', 'GEISINGER-LEWISTOWN HOSPITAL',
+      'GEISINGER WYOMING VALLEY MEDICAL CENTER', 'GEISINGER JERSEY SHORE HOSPITAL'
+    ),
+    short_name = c(
+      'GCMC', 'Bloomsburg', 'GMC', 'Lewistown', 'GWV', 'Jersey Shore'
+    )
+  )
+
+new_results_df %>%
+  filter(PROVIDER_ID %in% geis_hospital_df$provider_id) %>%
+  inner_join(geis_hospital_df %>% select(PROVIDER_ID = provider_id, short_name),
+             by = "PROVIDER_ID") %>%
+  select(PROVIDER_ID, short_name, n_groups, summary_score, stars, starts_with("group_score_"))
+```
+
+
+```{r}
+new_results_df %>% filter(!is.na(stars)) %>% count(n_groups)
+
+new_results_df %>%
+  filter(!is.na(stars)) %>%
+  group_by(n_groups, stars) %>%
+  summarize(
+    min_score = min(summary_score),
+    max_score = max(summary_score),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    score_range = str_c(round(min_score, 3), ', ', round(max_score, 3))
+  ) %>%
+  pivot_wider(id_cols = stars, names_from = n_groups, values_from = score_range) %>%
+  select(
+    stars,
+    `3-measure group (n=229)` = `3`,
+    `4-measure group (n=491)` = `4`,
+    `5-measure group (n=2404)` = `5`
+  )
+```
+
+
+
+```{r}
+
+
+all_mort_readm_data_df %>%
+  select(zip_date, data) %>%
+  unnest(data) %>%
+  filter(provider_id == "390003", measure_id == "MORT_30_COPD") %>%
+  arrange(desc(zip_date), measure_id)
+
+
+all_mort_readm_data_df %>%
+  select(zip_date, data) %>%
+  unnest(data) %>%
+  filter(provider_id == "390003") %>%
+  filter(grepl("(HIP.*KNEE|PSI.*90)", toupper(measure_id))) %>%
+  filter(!is.na(score)) %>%
+  arrange(desc(zip_date), measure_id)
+
+all_hai_data_df %>%
+  select(zip_date, data) %>%
+  unnest(data) %>%
+  filter(provider_id == "390003", grepl("HAI_[1-6]", toupper(measure_id))) %>%
+  arrange(desc(zip_date), measure_id)
+
+
+gbh_data_df <-
+  all_sas_df %>%
+  filter(zip_date == "2021-04-01") %>%
+  select(sas_input_df) %>%
+  unnest(sas_input_df)
+
+gbh_vec <- t(gbh_data_df %>% filter(PROVIDER_ID == "390003"))
+gbh_vec <- rownames(gbh_vec)[!is.na(gbh_vec)]
+gbh_vec[gbh_vec %in% measures_outcomes_safety]
+```
+
+
+
+
+
+```{r}
+sample.int(1, n = 10)
+
+sampler <- function(m, n) {
+  s <- integer(0)
+  for (j in (n-m+1):n) {
+    x <- sample.int(1, n = j)
+    if (x %in% s) {
+      s <- c(s, j)
+    } else {
+      s <- c(s, x)
+    }
+  }
+  s
+}
+sample.int(1, n = 8)
+sampler(3, 10)
+```
+
+```{r}
+#sas_rand <- c(1,9,3,5,1,3,4,2,1)
+sas_rand <- c(1,9,3,5,1,3,4,2,1)
+
+rand_df <- read.csv("rand_surveyselect.csv")
+sas_rand <- rand_df$sas_rand
+
+sampler <- function(n, k) {
+  x <- 1:n
+  for (i in 1:(n-1)) {
+  #for (i in n:2) {
+    #j <- sample.int(1, n = i)
+    #print(n-i+1)
+    #j <- sas_rand[n+1-i]
+    j <- i + sas_rand[i] - 1
+    y <- x[i]
+    x[i] <- x[j]
+    x[j] <- y
+  }
+  temp_seq <- integer(0)
+  partsize <- as.integer(n / k)
+  smallparts <- k - (n %% k)
+  for (i in 1:smallparts) {
+    temp_seq <- c(temp_seq, rep(i, partsize))
+  }
+  if (smallparts < k) {
+    for (i in (smallparts+1):k) {
+      temp_seq <- c(temp_seq, rep(i, partsize+1))
+    }
+  }
+  #temp_seq[order(x)]
+  temp_seq[x]
+}
+
+my_groups <- sampler(nrow(rand_df), max(rand_df$GroupID))
+sum(rand_df$GroupID == my_groups, na.rm = TRUE)
+
+```
+
+
+```{r}
+some_info_df <-
+  all_info_df %>%
+  filter(zip_date == "2020-10-01" |
+           zip_date == "2021-07-01" | zip_date == "2022-04-01") %>%
+  select(zip_date, info_df) %>%
+  mutate(
+    info_df = map(info_df, ~select(.x, PROVIDER_ID = `Facility ID`, Hospital = `Facility Name`))
+  )
+
+library(openxlsx)
+openxlsx::write.xlsx(some_info_df$info_df[[1]], "Hospital Names 2020-10.xlsx")
+openxlsx::write.xlsx(some_info_df$info_df[[2]], "Hospital Names 2021-07.xlsx")
+openxlsx::write.xlsx(some_info_df$info_df[[3]], "Hospital Names 2022-04.xlsx")
+some_info_df$info_df[[1]]
+```
+
+
+```{r}
+all_timely_data_df$data[[29]] %>%
+  filter(measure_id == "OP_33") %>%
+  distinct(measure_name)
+```
+
+

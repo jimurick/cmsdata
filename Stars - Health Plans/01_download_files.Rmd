@@ -1,0 +1,63 @@
+---
+title: "Download CMS Files"
+output:
+html_notebook: default
+---
+
+<https://www.cms.gov/Medicare/Prescription-Drug-Coverage/PrescriptionDrugCovGenIn/PerformanceData>
+
+```{r, echo=TRUE, eval=FALSE}
+library(tidyverse)
+library(rvest)
+
+cms_url <- "https://www.cms.gov/Medicare/Prescription-Drug-Coverage/PrescriptionDrugCovGenIn/PerformanceData"
+
+zip_dir <- "zips"
+```
+
+Read all the zip file URLs from the `cms_url` page.
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE}
+html <- read_html(cms_url)
+
+relative_urls <-
+  html %>%
+  html_nodes(xpath = '//*[@class="field__item"]') %>%
+  html_element("a") %>%
+  html_attr("href")
+
+relative_urls <-
+  relative_urls[grepl("(star|rating|display.?measures).*zip(-0)?",
+                      relative_urls, ignore.case = TRUE)]
+relative_urls <- gsub("[.]zip([^.]+)$", ".zip", relative_urls)
+
+zip_urls <- paste0("https://www.cms.gov/", relative_urls)
+head(zip_urls)
+```
+
+You may need to run this step several times, since downloads may fail.
+
+```{r}
+for (zip in zip_urls) {
+  destfilename <- file.path(zip_dir, basename(zip))
+  if (!file.exists(destfilename)) {
+    download.file(url = zip, destfile = destfilename)
+  }
+}
+```
+
+
+```{r}
+zipfiles <- list.files(zip_dir)
+zipfiles <- zipfiles[grepl("[.]zip$", zipfiles)]
+
+for (zipfile in zipfiles) {
+  destdir <- file.path(zip_dir, gsub("([.]zip.*$)", "", zipfile))
+  zipfile <- file.path(zip_dir, zipfile)
+  if (!dir.exists(destdir)) {
+    unzip(zipfile, exdir = destdir)
+  }
+}
+```
+
+

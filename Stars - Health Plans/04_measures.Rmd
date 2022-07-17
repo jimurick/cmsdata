@@ -1,0 +1,269 @@
+---
+title: "Measures"
+output:
+html_notebook: default
+---
+
+```{r}
+source("init.R")
+
+# To avoid lubridate time zone warning messages
+prev_locale <- Sys.setlocale("LC_TIME","English")
+
+load(file = file.path(dirs$rdata, "03_display_measures_df.RData"))
+```
+
+
+
+```{r}
+# file_vec <- get_unzipped_files_by_pattern("(part.[cd])?.*data[^/-]*csv$")
+# 
+# measure_file_df <-
+#   tibble(
+#     star_year = str_sub(names(file_vec), end = 4L),
+#     filename = unname(file_vec)
+#   ) %>%
+#   mutate(
+#     part_c_only = grepl("part.?c[^/]*$", filename, ignore.case = TRUE),
+#     part_d_only = grepl("part.?d[^/]*$", filename, ignore.case = TRUE),
+#     fall   = grepl("fall.?release", filename, ignore.case = TRUE),
+#     spring = grepl("spring.?release", filename, ignore.case = TRUE)
+#   ) %>%
+#   relocate(filename, .after = spring) %>%
+#   filter(!spring, star_year > 2007) %>%
+#   filter(!grepl("Display Measures", filename))
+
+#write.csv(measure_file_df,
+#          file.path(dirs$table, "file_info_measures_temp.csv"))
+```
+
+
+
+```{r}
+measure_file_df <-
+  read.csv(file.path(dirs$table, "file_info_measures.csv")) %>% as_tibble()
+measure_file_df
+```
+
+
+
+
+```{r}
+add_domain_id <- function(df, domain_vec, part) {
+  x <- case_when(part == "C" ~ "HD", part == "D" ~ "DD")
+  df %>%
+    mutate(
+      domain_id = map_int(domain_name, ~which(.x == domain_vec)),
+      domain_id = sprintf("%s%d", x, domain_id)
+    ) %>%
+    relocate(domain_id, .before = domain_name)
+}
+
+split_domain_id <- function(df) {
+  df %>%
+    mutate(
+      domain_id   = str_sub(domain_name, end = 3L),
+      domain_name = str_sub(domain_name, start = 6L)
+    ) %>%
+    relocate(domain_id, .before = domain_name)
+}
+
+add_measure_id <- function(df, part) {
+  df %>%
+    mutate(
+      measure_id = 1L:n(),
+      measure_id = sprintf("%s%02d", part, measure_id)
+    ) %>%
+    relocate(measure_id, .before = measure_name)
+}
+
+split_measure_id <- function(df) {
+  df %>%
+    mutate(
+      measure_id   = str_sub(measure_name, end = 3L),
+      measure_name = str_sub(measure_name, start = 6L)
+    ) %>%
+    relocate(measure_id, .before = measure_name)
+}
+
+initial_processing <- function(...) {
+  row_df <- list(...)
+  
+  df <-
+    row_df %$%
+    read.csv(filename, check.names = FALSE, skip = skip, nrows = nrows,
+             colClasses = "character", encoding = encoding)[, first_col:last_col]
+  row.names(df) <- paste0("c", 1:nrow(df))
+  one_measure_df <-
+    t(df) %>%
+    as_tibble() %>%
+    mutate(across(everything(), function(x) replace_na(x, ""))) %>%
+    mutate(across(everything(), str_trim))
+  col_nbrs <- row_df %$% c(measure_row, domain_row, date_row)
+  df <- as_tibble(t(df))[, col_nbrs]
+  colnames(df) <- c("measure_name", "domain_name", "dates")
+  
+  domain_vec <- df %>% filter(domain_name != "") %>% pull(domain_name)
+  date_vec   <- df %>% filter(dates != "") %>% pull(dates)
+  df$domain_name <- domain_vec[cumsum(ifelse(df$domain_name == "", 0, 1))]
+  df$dates       <-   date_vec[cumsum(ifelse(df$dates == "", 0 , 1))]
+  
+  part <- row_df %$% case_when(part_c_only~"C", part_d_only~"D")
+  if (row_df$measures_numbered) {
+    df <- split_measure_id(df)
+  } else {
+    df <- add_measure_id(df, part)
+  }
+  if (row_df$domains_numbered) {
+    df <- split_domain_id(df)
+  } else {
+    df <- add_domain_id(df, domain_vec, part)
+  }
+  df
+}
+```
+
+
+```{r}
+initial_str_cols <- c("measure_id", "measure_name",
+                      "domain_id", "domain_name", "dates")
+
+initial_measure_df <-
+  measure_file_df %>%
+  mutate(file_nbr = 1:n()) %>%
+  group_by(star_year, file_nbr) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(measure_data_df = map(data, ~do.call(initial_processing, .x))) %>%
+  select(-file_nbr, -data) %>%
+  unnest(measure_data_df) %>%
+  mutate(across(all_of(initial_str_cols), fix_non_ascii))
+
+initial_measure_df <-
+  initial_measure_df %>%
+  mutate(
+    dates = ifelse(grepl("not applicable", dates, ignore.case = TRUE),
+                   NA_character_, dates),
+    dates = gsub("Feb ",  "02/", dates),
+    dates = gsub("Apr ",  "04/", dates),
+    dates = gsub("June ", "06/", dates),
+    dates = gsub("Aug ",  "08/", dates),
+    #dates = gsub(sprintf("[%s]", two_dashes), "-", dates),
+    dates = gsub("[^0-9/-]", "", dates),
+    from_date = map_chr(dates, ~str_split(.x, "[–-]")[[1]][1]),
+    to_date = map_chr(dates, ~str_split(.x, "[–-]")[[1]][2]),
+    to_date = gsub("^(\\d{1,2})/(\\d{2,4})$", "\\1/01/\\2", to_date),
+    to_date = lubridate::mdy(to_date),
+    from_date = str_c(from_date,
+                      ifelse(grepl("/$", from_date),
+                             lubridate::year(to_date), "")),
+    from_date = gsub("^(\\d{1,2})/(\\d{2,4})$", "\\1/01/\\2", from_date),
+    from_date = lubridate::mdy(from_date)
+  ) %>%
+  select(star_year, domain_id, measure_id, measure_name,
+         data_start_date = from_date, data_end_date = to_date)
+
+initial_measure_df
+```
+
+
+```{r}
+measure_history_df <-
+  read.csv(file.path(dirs$table, "measure_history.csv"),
+           check.names = FALSE) %>%
+  pivot_longer(`2022`:`2008`,
+               names_to = "star_year", values_to = "measure_id") %>%
+  mutate(across(everything(), function(x) replace_na(x, ""))) %>%
+  mutate(across(everything(), str_trim)) %>%
+  filter(measure_id != "") %>%
+  mutate(star_year = as.integer(star_year)) %>%
+  nest(data = c(star_year, measure_id)) %>%
+  mutate(
+    data = map(data, ~arrange(.x, desc(star_year))),
+    measure_code = map_chr(data, ~str_c(.x$measure_id[1], .x$star_year[1]))
+  ) %>%
+  unnest(data) %>%
+  select(
+    measure_code, part, star_year, measure_id, measure_standard_name, data_source
+  ) %>%
+  arrange(measure_code, star_year)
+
+measure_history_df
+```
+
+
+
+```{r}
+measure_weights_df <- read.csv(file.path(dirs$table, "measure_weights.csv"))
+measure_weights_df
+ncqa_codes_df <- read.csv(file.path(dirs$table, "ncqa_codes.csv"))
+ncqa_codes_df
+```
+
+```{r}
+load(file.path(dirs$rdata, "02_domain_stars_df.RData"))
+measure_domain_df <- domain_stars_df %>%
+  distinct(star_year, domain_id, domain_name)
+
+measure_domain_df
+```
+
+
+```{r}
+measure_df <-
+  rbind(
+    # Star measures
+    initial_measure_df %>%
+      inner_join(measure_history_df, by = c("star_year", "measure_id")) %>%
+      inner_join(measure_domain_df, by = c("star_year", "domain_id")) %>%
+      left_join(measure_weights_df, by = c("star_year", "measure_id")) %>%
+      mutate(
+        part_weight = replace_na(part_weight, 1),
+        overall_weight = replace_na(overall_weight, 1),
+        display_measure = FALSE
+      ) %>%
+      select(
+        star_year, measure_id, measure_name,
+        part, domain_id, domain_name,
+        measure_code, measure_standard_name,
+        data_source, data_start_date, data_end_date,
+        weight_category, part_weight, overall_weight,
+        display_measure
+      ),
+    # Display measures
+    display_measures_df %>%
+      inner_join(measure_history_df, by = c("star_year", "measure_id")) %>%
+      transmute(
+        star_year, measure_id, measure_name,
+        part, domain_id = NA_character_, domain_name = NA_character_,
+        measure_code, measure_standard_name,
+        data_source, data_start_date = NA, data_end_date = NA,
+        weight_category = NA_character_,
+        part_weight = NA_real_, overall_weight = NA_real_,
+        display_measure = TRUE
+      )
+  ) %>%
+  mutate(part = ifelse(grepl("^DME", measure_id), "E", part)) %>%
+  left_join(
+    ncqa_codes_df %>% select(star_year, measure_id, ncqa_code),
+    by = c("star_year", "measure_id")
+  ) %>%
+  distinct()
+
+measure_df
+```
+
+```{r}
+save(measure_df, file = file.path(dirs$rdata, "04_measure_df.RData"))
+```
+
+
+```{r}
+measure_df %>% count(star_year, measure_id) %>% filter(n > 1)
+measure_df %>% filter(star_year == 2014, measure_id == "DME01")
+measure_df %>% filter(star_year == 2015, measure_id == "DME01")
+measure_history_df %>% filter(star_year == 2014, measure_id == "DME01")
+```
+
+
+

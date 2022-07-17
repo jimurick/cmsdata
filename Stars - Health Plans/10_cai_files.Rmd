@@ -1,0 +1,102 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+
+```{r}
+source("init.R")
+
+cai_val_df <- read.csv(file.path(dirs$table, "cai_val_df.csv")) %>% as_tibble()
+```
+
+
+```{r}
+cai_file_vec <- get_unzipped_files_by_pattern("cai.*csv$")
+
+cai_file_df <-
+  tibble(
+    star_year = str_sub(names(cai_file_vec), end = 4L),
+    file_name = unname(cai_file_vec)
+  ) %>%
+  mutate(
+    part_c_only = grepl("part.?c[^/]*$", file_name, ignore.case = TRUE),
+    part_d_only = grepl("part.?d[^/]*$", file_name, ignore.case = TRUE),
+    fall   = grepl("fall.?release", file_name, ignore.case = TRUE),
+    spring = grepl("spring.?release", file_name, ignore.case = TRUE)
+  ) %>%
+  relocate(file_name, .after = spring) %>%
+  filter(!spring) %>%
+  mutate(file_key = str_c(star_year,
+                          ifelse(part_c_only, "C", ""),
+                          ifelse(part_d_only, "D", ""))) %>%
+  relocate(file_key, .before = star_year)
+
+
+process_one_cai_file <- function(file_name, skip_rows, col_ind) {
+  df <-
+    read.csv(file_name, skip = skip_rows, check.names = FALSE)[, col_ind] %>%
+    mutate(across(everything(), str_trim))
+  colnames(df) <- c("contract_id", "Part C",
+                    "Part D MA-PD", "Part D PDP", "Overall")
+  df %>%
+    pivot_longer(all_of(colnames(df)[-1]),
+                 names_to = "summary_type", values_to = "fac")
+}
+
+
+cai_df <-
+  tribble(
+    ~file_key, ~skip_rows, ~col_ind,
+  	"2017",    1,          c(1, 6:9),
+  	"2018",    1,          c(1, 6:9),
+  	"2019",    1,          c(1, 6:9),
+  	"2020",    1,          c(1, 6:9),
+  	"2021",    1,          c(1, 6:9),
+  	"2022",    1,          c(1, 6:9),
+  ) %>%
+  inner_join(cai_file_df, by = "file_key") %>%
+  mutate(
+    star_year = as.integer(star_year),
+    cai_df = pmap(list(file_name, skip_rows, col_ind),
+                      process_one_cai_file)
+  ) %>%
+  select(star_year, cai_df) %>%
+  unnest(cai_df) %>%
+  filter(!is.na(fac), fac != "N/A") %>%
+  select(star_year, contract_id, summary_type, fac) %>%
+  left_join(cai_val_df, by = c("star_year", "summary_type", "fac"))
+
+cai_df
+```
+
+
+```{r}
+save(cai_df, file = file.path(dirs$rdata, "10_cai_df.RData"))
+```
+
+
+
+
+# Testing
+
+
+```{r, eval=FALSE}
+cai_df
+
+cai_df %>%
+  count(star_year, fac) %>%
+  pivot_wider(names_from = star_year, values_from = n) %>%
+  mutate(across(all_of(as.character(2017:2022)), function(x) replace_na(x, 0L)))
+```
+
+```{r, eval=FALSE}
+cai_df %>% filter(is.na(cai))
+```
+
+```{r, eval=FALSE}
+cai_df %>% count(star_year, contract_id, summary_type) %>% filter(n>1)
+```
+

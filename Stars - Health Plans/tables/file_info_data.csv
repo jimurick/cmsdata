@@ -1,0 +1,23 @@
+star_year,part_c_only,part_d_only,filename,skip,first_col,last_col,encoding
+2008,TRUE,FALSE,zips/2008_Plan_Ratings/2008 Plan Ratings Fall Release (10_2007)/2008_Part_C_Report_Card_Master_Table_2009_11_30_data.csv,3,3,31,ANSI
+2008,FALSE,TRUE,zips/2008_Plan_Ratings/2008 Plan Ratings Fall Release (10_2007)/2008_Part_D_Report_Card_Master_Table_2007_10_25_data.csv,3,4,20,ANSI
+2009,TRUE,FALSE,zips/2009_Plan_Ratings/2009 Plan Ratings Fall Release (10_2008)/2009_Part_C_Report_Card_Master_Table_2008_11_30_data.csv,3,5,40,ANSI
+2009,FALSE,TRUE,zips/2009_Plan_Ratings/2009 Plan Ratings Fall Release (10_2008)/2009_Part_D_Report_Card_Master_Table_2008_11_06_data.csv,4,5,23,ANSI
+2010,TRUE,FALSE,zips/2010_Plan_Ratings_and_Display_Measures/2010 Plan Ratings (10_2009)/2010_Part_C_Report_Card_Master_Table_2009_11_30_data.csv,3,5,37,ANSI
+2010,FALSE,TRUE,zips/2010_Plan_Ratings_and_Display_Measures/2010 Plan Ratings (10_2009)/2010_Part_D_Report_Card_Master_Table_2009_10_26_data.csv,5,4,22,ANSI
+2011,TRUE,FALSE,zips/2011_Plan_Ratings_and_Display_Measures/2011 Plan Ratings Fall Release (10_2010)/2011_Part_C_Report_Card_Master_Table_2010_10_05_data.csv,4,5,40,ANSI
+2011,FALSE,TRUE,zips/2011_Plan_Ratings_and_Display_Measures/2011 Plan Ratings Fall Release (10_2010)/2011_Part_D_Report_Card_Master_Table_2010_10_05_data.csv,5,4,20,ANSI
+2012,TRUE,FALSE,zips/2012_Plan_Ratings_and_Display_Measures/2012 Plan Ratings Fall Release (10_2011)/2012_Part_C_Report_Card_Master_Table_2011_11_01_Data.csv,4,5,40,ANSI
+2012,FALSE,TRUE,zips/2012_Plan_Ratings_and_Display_Measures/2012 Plan Ratings Fall Release (10_2011)/2012_PartD_Report_Card_Master_Table_2011_10_25_data.csv,5,6,22,ANSI
+2013,TRUE,FALSE,zips/2013_Plan_Ratings_and_Display_Measures/2013 Plan Ratings Fall Release (10_2012)/2013_Part_C_Report_Card_Master_Table_2012_10_17_Data.csv,4,6,42,ANSI
+2013,FALSE,TRUE,zips/2013_Plan_Ratings_and_Display_Measures/2013 Plan Ratings Fall Release (10_2012)/2013_Part D_Report_Card_Master_Table_2012_10_16_data.csv,5,6,23,ANSI
+2014,TRUE,FALSE,zips/2014_Star_Ratings_and_Display_Measures/2014 Star Ratings Fall Release (10_2013)/2014_Part_C_Report_Card_Master_Table_2013_10_17_data.csv,3,6,41,ANSI
+2014,FALSE,TRUE,zips/2014_Star_Ratings_and_Display_Measures/2014 Star Ratings Fall Release (10_2013)/2014_Part_D_Report_Card_Master_Table_2013_10_17_data.csv,3,6,20,ANSI
+2015,FALSE,FALSE,zips/2015_Star_Ratings_and_Display_Measures/2015 Star Ratings Fall Release (10_2014)/2015_Report_Card_Master_Table_2014_10_03_data.csv,3,6,51,ANSI
+2016,FALSE,FALSE,zips/2016_Star_Ratings_and_Display_Measures/2016 Star Ratings Fall Release (10_2015)/2016_Report_Card_Master_Table_2015_10_02_data.csv,3,6,52,ANSI
+2017,FALSE,FALSE,zips/2017_Star_Ratings_and_Display_Measures/2017 Star Ratings Fall Release (10_2016)/2017_Report_Card_Master_Table_2016_10_26_data.csv,3,6,52,ANSI
+2018,FALSE,FALSE,zips/2018-Star-Ratings-and-Display-Measures/2018 Star Ratings Fall Release (11_2017)/2018_Report_Card_Master_Table_2017_11_01_data.csv,3,6,53,ANSI
+2019,FALSE,FALSE,zips/2019-Part-C-and-D-Medicare-Star-Ratings-Data-v04-12-2019/2019 Star Ratings Fall Release (11_2018)/2019_Report_Card_Master_Table_2018_11_13_data.csv,3,6,53,ANSI
+2020,FALSE,FALSE,zips/2020-Star-Ratings-Data-Table-Oct-21-2019/2020 Star Ratings Data Table - Measure Data (Oct 21 2019).csv,3,6,52,ANSI
+2021,FALSE,FALSE,zips/2021-star-ratings-data-table-oct-08-2020/2021 Star Ratings Data Table - Measure Data (Oct 08 2020).csv,3,6,51,ANSI
+2022,FALSE,FALSE,zips/2022-star-ratings-data-table-oct-06-2021/2022 Star Ratings Data Table - Measure Data (Oct 06 2021).csv,3,6,45,UTF-8

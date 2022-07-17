@@ -1,0 +1,151 @@
+---
+title: "Measure Values"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+load(file.path(dirs$rdata, "04_measure_df.RData"))
+load(file.path(dirs$rdata, "03_display_measure_values_df.RData"))
+```
+
+
+```{r}
+
+initial_data_processing <- function(...) {
+  row_df <- list(...)
+  
+  part <- row_df %$% case_when(part_c_only~"C", part_d_only~"D", TRUE~"")
+  measure_ids <- measure_df %>%
+    filter(star_year == row_df$star_year_copy, !display_measure) %>%
+    arrange(measure_id) %>%
+    pull(measure_id)
+  measure_ids <- measure_ids[grepl(str_c("^", part), measure_ids)]
+  
+  read_cols <- row_df %$% c(1, first_col:last_col)
+  
+  df <- row_df %$%
+    read.csv(filename, skip = skip, encoding = encoding,
+             colClasses = "character")[, read_cols]
+  colnames(df) <- c("contract_id", measure_ids)
+  
+  df %>%
+    pivot_longer(-contract_id, names_to = "measure_id", values_to = "entry")
+}
+
+
+data_file_df <- read.csv(file.path(dirs$table, "file_info_data.csv"))
+
+initial_data_df <-
+  data_file_df %>%
+  mutate(
+    file_nbr = 1:n(),
+    star_year_copy = star_year
+  ) %>%
+  group_by(star_year, file_nbr) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    data_file_df = map(data, ~do.call(initial_data_processing, .x))
+  ) %>%
+  select(-file_nbr, -data) %>%
+  unnest(data_file_df) %>%
+  mutate(across(all_of(c("contract_id", "measure_id", "entry")),
+                function(x) gsub('’', "'", replace_na(x, "")))) %>%
+  mutate(across(all_of(c("contract_id", "measure_id", "entry")), str_trim)) %>%
+  filter(entry != "") %>%
+  filter(nchar(contract_id) == 5) %>%
+  mutate(entry = fix_non_ascii(entry))
+
+
+initial_data_df
+```
+
+
+```{r}
+
+almost_done_df <-
+  initial_data_df %>%
+  mutate(
+    number  = ifelse(grepl('^[0-9]+([.][0-9]+)?$', entry),
+                     as.numeric(entry), NA_real_),
+    percent = ifelse(grepl('[0-9.]+([.][0-9.]+)?\\s*%$', entry),
+                     entry, NA_character_),
+    percent_denom = ifelse(is.na(percent), 1, 100),
+    percent = as.numeric(gsub("%", "", percent)) / percent_denom,
+    time    = ifelse(grepl('^[0-9]+:[0-9]+$', entry), entry, NA_character_),
+    hours   = map_chr(time, ~ifelse(is.na(.x), .x, str_split(.x, ":")[[1]][1])),
+    minutes = map_chr(time, ~ifelse(is.na(.x), .x, str_split(.x, ":")[[1]][2])),
+    time    = 60 * as.numeric(hours) + as.numeric(minutes)
+  ) %>%
+  transmute(
+    star_year, measure_id, contract_id,
+    value = case_when(
+      !is.na(number)  ~ number,
+      !is.na(percent) ~ percent,
+      !is.na(time)    ~ time,
+      TRUE            ~ NA_real_
+    ),
+    value_note = ifelse(is.na(number) & is.na(percent) & is.na(time),
+                        entry, NA_character_),
+    value_original_text = entry
+  )
+
+# These are the only measures that may be greater than 1.0 (or 100%). All
+# other measures will be ratios with values from 0 to 1.
+non_percent_measure_df <-
+  measure_df %>%
+  filter(grepl("(complaint|time\\b|mpf.*composite|appeals.*auto.*forward)",
+               measure_standard_name, ignore.case = TRUE)) %>%
+  select(measure_code, star_year, measure_id, measure_standard_name)
+
+
+measure_value_pcg_conversion_df <-
+  almost_done_df %>%
+  filter(!is.na(value)) %>%
+  group_by(star_year, measure_id) %>%
+  summarize(
+    minval = min(value),
+    maxval = max(value),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    zero_to_1   = (0 <= minval & maxval <= 1),
+    zero_to_100 = (0 <= minval & 1 < maxval & maxval <= 100),
+    other       = ((!zero_to_1) & (!zero_to_100))
+  ) %>%
+  left_join(
+    non_percent_measure_df %>%
+      transmute(star_year, measure_id, percent = FALSE),
+    by = c("star_year", "measure_id")
+  ) %>%
+  mutate(percent = replace_na(percent, TRUE)) %>%
+  transmute(
+    star_year,
+    measure_id,
+    value_denom = ifelse(percent & zero_to_100, 100, 1)
+  )
+
+
+measure_values_df <-
+  rbind(
+    almost_done_df %>%
+      inner_join(measure_value_pcg_conversion_df,
+                 by = c("star_year", "measure_id")) %>%
+      mutate(value = value / value_denom) %>%
+      select(-value_denom),
+    display_measure_values_df
+  )
+
+measure_values_df
+```
+
+
+```{r}
+save(measure_values_df,
+     file = file.path(dirs$rdata, "05_measure_values_df.RData"))
+```
+
+

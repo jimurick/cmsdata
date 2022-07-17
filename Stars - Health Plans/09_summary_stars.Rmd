@@ -1,0 +1,175 @@
+---
+title: "Summary/Overall Star Scores"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+```
+
+
+```{r}
+file_vec <- get_unzipped_files_by_pattern("summary.*csv$")
+file_df <-
+  tibble(
+    star_year = str_sub(names(file_vec), end = 4L),
+    file_name = unname(file_vec)
+  ) %>%
+  mutate(
+    part_c_only = grepl("part.?c[^/]*$", file_name, ignore.case = TRUE),
+    part_d_only = grepl("part.?d[^/]*$", file_name, ignore.case = TRUE),
+    fall   = grepl("fall.?release", file_name, ignore.case = TRUE),
+    spring = grepl("spring.?release", file_name, ignore.case = TRUE)
+  ) %>%
+  relocate(file_name, .after = spring)
+
+file_df <- file_df %>% filter(!spring) %>%
+  mutate(file_key = str_c(star_year,
+                          ifelse(part_c_only, "C", ""),
+                          ifelse(part_d_only, "D", ""))) %>%
+  relocate(file_key, .before = star_year)
+
+
+process_one_summary_file <- function(file_name, skip_rows, col_ind, part_c_only) {
+  df <- read.csv(file_name, skip = skip_rows, check.names = FALSE)[, col_ind] %>%
+    mutate(across(everything(), str_trim))
+  all_cnames <- c("contract_id", "Part C Summary",
+                  "Part D Summary", "Overall Summary")
+  part_col_ind <- ifelse(part_c_only, 2, 3)
+  if (ncol(df) == 2) {
+    colnames(df) <- all_cnames[c(1, part_col_ind)]
+  } else if(ncol(df) == 3) {
+    colnames(df) <- all_cnames[c(1, part_col_ind, 4)]
+  } else if(ncol(df) == 4) {
+    colnames(df) <- all_cnames
+  }
+  df %>%
+    pivot_longer(all_of(colnames(df)[-1]),
+                 names_to = "summary_type", values_to = "stars")
+}
+
+summary_stars_df <-
+  tribble(
+    ~file_key, ~skip_rows, ~col_ind,
+  	"2009C",   1,          c(1, 5),
+  	"2009D",   2,          c(1, 5),
+  	"2010C",   1,          c(1, 5),
+  	"2010D",   3,          c(1, 4),
+  	"2011C",   1,          c(1, 6, 7),
+  	"2011D",   3,          c(1, 4),
+  	"2012C",   1,          c(1, 5, 8),
+  	"2012D",   3,          c(1, 6),
+  	"2013C",   1,          c(1, 6, 9),
+  	"2013D",   3,          c(1, 6),
+  	"2014C",   1,          c(1, 8, 9),
+  	"2014D",   1,          c(1, 8),
+  	"2015",    1,          c(1, 8:10),
+  	"2016",    1,          c(1, 8:10),
+  	"2017",    1,          c(1, 8:10),
+  	"2018",    1,          c(1, 7:9),
+  	"2019",    1,          c(1, 7:9),
+  	"2020",    1,          c(1, 9:11),
+  	"2021",    1,          c(1, 9:11),
+  	"2022",    1,          c(1, 9:11),
+  ) %>%
+  inner_join(file_df, by = "file_key") %>%
+  mutate(
+    star_year = as.integer(star_year),
+    summary_df = pmap(list(file_name, skip_rows, col_ind, part_c_only),
+                      process_one_summary_file)
+  ) %>%
+  select(star_year, summary_df) %>%
+  unnest(summary_df) %>%
+  filter(str_trim(stars) != "", str_trim(contract_id) != "") %>%
+  mutate(
+    stars = str_trim(gsub("( out of 5)? stars$", "", stars)),
+    stars_note = ifelse(!grepl("^\\d(.\\d)?$", stars), stars, NA_character_),
+    stars = ifelse(grepl("^\\d(.\\d)?$", stars), as.numeric(stars), NA_real_)
+  ) %>%
+  transmute(
+    star_year,
+    summary_type = case_when(summary_type == "Part C Summary"  ~ "Part C",
+                             summary_type == "Part D Summary"  ~ "Part D",
+                             summary_type == "Overall Summary" ~ "Overall"),
+    contract_id,
+    stars,
+    stars_note
+  )
+
+summary_stars_df
+```
+
+
+```{r}
+save(summary_stars_df,
+     file = file.path(dirs$rdata, "09_summary_stars_df.RData"))
+```
+
+
+
+
+
+
+
+
+# Testing and scratch work
+
+
+
+```{r, eval=FALSE}
+file_df
+file_df %>% filter(!part_c_only, !part_d_only) %>% pull(file_name)
+file_df %>% filter(!fall, !spring)
+file_df %>% filter(fall, spring)
+(2008:2022)[!(as.character(2008:2022) %in% file_df$star_year)]
+file_df %>% count(star_year, part_c_only, part_d_only, fall, spring) %>% filter(n > 1)
+file_df %>% filter(!spring) %>% count(star_year, part_c_only, part_d_only) %>% filter(n > 1)
+
+file_df
+```
+
+
+```{r, eval=FALSE}
+read.csv(file_df[file_df$file_key == "2009C", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 5)]
+read.csv(file_df[file_df$file_key == "2009D", ]$file_name, skip = 2, check.names = FALSE)[, c(1, 5)]
+read.csv(file_df[file_df$file_key == "2010C", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 5)]
+read.csv(file_df[file_df$file_key == "2010D", ]$file_name, skip = 3, check.names = FALSE)[, c(1, 4)]
+read.csv(file_df[file_df$file_key == "2011C", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 6, 7)]
+read.csv(file_df[file_df$file_key == "2011D", ]$file_name, skip = 3, check.names = FALSE)[, c(1, 4)]
+read.csv(file_df[file_df$file_key == "2012C", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 5, 8)]
+read.csv(file_df[file_df$file_key == "2012D", ]$file_name, skip = 3, check.names = FALSE)[, c(1, 6)]
+read.csv(file_df[file_df$file_key == "2013C", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 6, 9)]
+read.csv(file_df[file_df$file_key == "2013D", ]$file_name, skip = 3, check.names = FALSE)[, c(1, 6)]
+read.csv(file_df[file_df$file_key == "2014C", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 8, 9)]
+read.csv(file_df[file_df$file_key == "2014D", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 8)]
+read.csv(file_df[file_df$file_key == "2015", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 8:10)]
+read.csv(file_df[file_df$file_key == "2016", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 8:10)]
+read.csv(file_df[file_df$file_key == "2017", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 8:10)]
+read.csv(file_df[file_df$file_key == "2018", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 7:9)]
+read.csv(file_df[file_df$file_key == "2019", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 7:9)]
+read.csv(file_df[file_df$file_key == "2020", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 9:11)]
+read.csv(file_df[file_df$file_key == "2021", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 9:11)]
+read.csv(file_df[file_df$file_key == "2022", ]$file_name, skip = 1, check.names = FALSE)[, c(1, 9:11)]
+
+# Columns I ignored:
+#   * SNP
+#   * 2017 Disaster %, 2018 Disaster %, 2019 Disaster %, 2020 Disaster %
+```
+
+
+```{r, eval=FALSE}
+
+
+temp_df %>% count(stars) %>% arrange(desc(n))
+
+temp_df %>% filter(stars == "")
+temp_df %>% filter(contract_id == "")
+
+summary_df
+```
+
+
+
+

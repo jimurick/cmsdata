@@ -1,0 +1,503 @@
+---
+title: "Cut Points"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+load(file.path(dirs$rdata, "04_measure_df.RData"))
+```
+
+
+```{r}
+# file_pattern_re <- "(cut.?point|threshold).*(csv|xlsx?)$"
+# file_vec <- get_unzipped_files_by_pattern(file_pattern_re)
+# 
+# cp_file_df <-
+#   tibble(
+#     star_year = str_sub(names(file_vec), end = 4L),
+#     filename = unname(file_vec)
+#   ) %>%
+#   mutate(
+#     part_c_only = grepl("(part[_ -]?|[^a-z0-9])c[^a-z0-9][^/]*$",
+#                         filename, ignore.case = TRUE),
+#     part_d_only = grepl("(part[_ -]?|[^a-z0-9])d[^a-z0-9][^/]*$",
+#                         filename, ignore.case = TRUE),
+#     fall   = grepl("fall.?release", filename, ignore.case = TRUE),
+#     spring = grepl("spring.?release", filename, ignore.case = TRUE)
+#   ) %>%
+#   relocate(filename, .after = spring) %>%
+#   filter(!spring, star_year > 2007) %>%
+#   # In 2008 for Part D, there's a "cutpoints" file and a "threshold" file
+#   # that have the exact same data.
+#   filter(!(star_year == "2008" & grepl("threshold", filename))) %>%
+#   arrange(star_year, part_d_only)
+# 
+# c_cp_file_df <- cp_file_df %>%
+#   filter(part_c_only) %>% select(star_year, filename)
+# d_cp_file_df <- cp_file_df %>%
+#   filter(part_d_only) %>% select(star_year, filename)
+# 
+# #write.csv(c_cp_file_df, file.path(dirs$table, "file_info_c_cutpoints_temp.csv"))
+# #write.csv(d_cp_file_df, file.path(dirs$table, "file_info_d_cutpoints_temp.csv"))
+```
+
+
+```{r}
+c_cp_files_df <-
+  read.csv(file.path(dirs$table, "file_info_c_cutpoints.csv"))
+d_cp_files_df <-
+  read.csv(file.path(dirs$table, "file_info_d_cutpoints.csv"))
+
+d_weird_file <-
+  d_cp_files_df %>% filter(star_year == 2016) %>% pull(filename) %>% unique()
+c_weird_file <-
+  c_cp_files_df %>% filter(star_year == 2022) %>% pull(filename) %>% unique()
+
+measure_ids <- measure_df %>%
+  filter(star_year == 2016, part == "D", !display_measure) %>% pull(measure_id)
+weird_colnames <- c("part_d_type", "stars", measure_ids)
+df <- read.csv(d_weird_file, skip = 3, colClasses = "character")[, 1:17]
+colnames(df) <- weird_colnames
+
+part_d_2016_cp_df <-
+  df %>%
+  filter(str_trim(stars) != "") %>%
+  pivot_longer(all_of(measure_ids),
+               names_to = "measure_id", values_to = "text") %>%
+  transmute(
+    star_year = 2016L,
+    cut_point_type = str_c("Part D ", part_d_type),
+    measure_id, stars, text
+  )
+
+
+part_c_2022_cp_df <- read_xlsx(c_weird_file, skip = 4, col_names = FALSE)
+c_measure_ids <- measure_df %>%
+  filter(star_year == 2022, part == "C", !display_measure) %>% pull(measure_id)
+colnames(part_c_2022_cp_df) <- c("stars", c_measure_ids)
+part_c_2022_cp_df <-
+  part_c_2022_cp_df %>%
+  pivot_longer(-stars, names_to = "measure_id", values_to = "text") %>%
+  transmute(
+    star_year = 2022L,
+    cut_point_type = "Part C",
+    measure_id, stars, text
+  )
+```
+
+
+```{r}
+
+initial_c_cut_point_processing <- function(...) {
+  row_df <- list(...)
+  measure_ids <- measure_df %>%
+    filter(part == "C", star_year == row_df$star_year_copy, !display_measure) %>%
+    pull(measure_id)
+  df_colnames <- c("stars", measure_ids)
+  df_coltypes <- paste0(rep("c", length(df_colnames)), collapse="")
+  
+  df <-
+    row_df %$%
+    read.csv(filename, skip = skip, nrows = nrows,
+             colClasses = "character")[, first_col:last_col]
+  colnames(df) <- df_colnames
+  
+  df %>%
+    pivot_longer(all_of(measure_ids),
+                 names_to = "measure_id", values_to = "text") %>%
+    transmute(
+      cut_point_type = str_c("Part C"),
+      measure_id,
+      stars,
+      text
+    )
+}
+
+initial_d_cut_point_processing <- function(...) {
+  row_df <- list(...)
+  measure_ids <- measure_df %>%
+    filter(part == "D", star_year == row_df$star_year_copy, !display_measure) %>%
+    pull(measure_id)
+  df_colnames <- c("stars", measure_ids)
+  #df_coltypes <- paste0(rep("c", length(df_colnames)), collapse="")
+  max_cols <- dim(row_df %$% read_csv(filename, skip = skip+1))[2]
+  print(max_cols)
+  df_coltypes <- paste0(rep("c", max_cols), collapse="")
+  
+  df <-
+    suppressMessages(
+      row_df %$%
+      read_csv(filename, skip = skip+1, n_max = nrows, col_types = df_coltypes,
+               col_names = FALSE)[, first_col:last_col]
+    )
+  colnames(df) <- df_colnames
+  
+  df %>%
+    pivot_longer(all_of(measure_ids),
+                 names_to = "measure_id", values_to = "text") %>%
+    transmute(
+      cut_point_type = str_c("Part D ", row_df$part_d_type),
+      measure_id,
+      stars,
+      text
+    )
+}
+
+
+c_cp_df <-
+  c_cp_files_df %>%
+  filter(star_year != 2022) %>%
+  mutate(file_nbr = 1:n(), star_year_copy = star_year) %>%
+  group_by(star_year, file_nbr) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    cut_point_df = map(data, ~do.call(initial_c_cut_point_processing, .x))
+  ) %>%
+  select(-file_nbr, -data) %>%
+  unnest(cut_point_df)
+
+d_cp_df <-
+  d_cp_files_df %>%
+  filter(star_year != 2016) %>%
+  mutate(file_nbr = 1:n(), star_year_copy = star_year) %>%
+  group_by(star_year, file_nbr) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    cut_point_df = map(data, ~do.call(initial_d_cut_point_processing, .x))
+  ) %>%
+  select(-file_nbr, -data) %>%
+  unnest(cut_point_df)
+
+initial_cp_df <-
+  rbind(c_cp_df, part_c_2022_cp_df, d_cp_df, part_d_2016_cp_df) %>%
+  mutate(
+    across(all_of(c("cut_point_type", "measure_id", "stars", "text")),
+           str_trim)
+  ) %>%
+  filter(grepl("^[1-5]( ?stars?)?$", stars, ignore.case = TRUE)) %>%
+  mutate(stars = as.integer(str_sub(stars, end = 1L)))
+
+initial_cp_df
+```
+
+```{r}
+
+cp_number_re <- "^([?><=]{0,2})?\\s*(-?[0-9]+[:./]?[0-9]*\\s*%?)\\s*(?:seconds|complaints per 1000 members|w)?$"
+cp_range_re <- "^([?><=]{0,2})?\\s*(-?[0-9]+[:./]?[0-9]*\\s*%?)?\\s*(?:and|to)\\s*([?><=]{0,2})?\\s*(-?[0-9]+[:./]?[0-9]*\\s*%?)\\s*(?:seconds|complaints per 1000 members|w)?$"
+
+cp_as_floats_df <-
+  initial_cp_df %>%
+  # Split up `text` into numbers and "directions" (>, <, etc)
+  mutate(
+    number_dir = map_chr(text, ~str_match(.x, cp_number_re)[1, 2]),
+    number_val = map_chr(text, ~str_match(.x, cp_number_re)[1, 3]),
+    range1_dir = map_chr(text, ~str_match(.x, cp_range_re)[1, 2]),
+    range1_val = map_chr(text, ~str_match(.x, cp_range_re)[1, 3]),
+    range2_dir = map_chr(text, ~str_match(.x, cp_range_re)[1, 4]),
+    range2_val = map_chr(text, ~str_match(.x, cp_range_re)[1, 5]),
+    number_flag = !is.na(number_val),
+    range_flag = !(is.na(range1_val) & is.na(range2_val)),
+    percent_flag = grepl("[%]", number_val) |
+                    grepl("[%]", range1_val) | grepl("[%]", range2_val),
+    number_val = gsub("/", ".", number_val),
+    range1_val = gsub("/", ".", range1_val),
+    range2_val = gsub("/", ".", range2_val)
+  ) %>%
+  filter(number_flag | range_flag) %>%
+  select(-number_dir, -range1_dir, -range2_dir, -number_flag, -range_flag) %>%
+  # Pivot the 3 `_val` columns to simplify the text->number conversion
+  pivot_longer(all_of(c("number_val", "range1_val", "range2_val")),
+               names_to = "val_col", values_to = "number") %>%
+  filter(!is.na(number)) %>%
+  # There are 3 types of conversion: directly to a number, dividing by 100 for
+  # percentages, and hours:minutes to just minutes
+  mutate(
+    colon_flag  = grepl("[:]", number),
+    number_nbr  = ifelse(!(percent_flag | colon_flag), number, NA_character_),
+    number_pcg  = ifelse(percent_flag,                 number, NA_character_),
+    number_time = ifelse(colon_flag,                   number, NA_character_),
+    number_nbr  = as.numeric(number_nbr),
+    number_pcg  = as.numeric(gsub("[%]", "", number_pcg)) / 100,
+    number_hour = map_chr(number_time, ~str_split(.x, ":")[[1]][1]),
+    number_min  = map_chr(number_time, ~str_split(.x, ":")[[1]][2]),
+    number_time = 60 * as.numeric(number_hour) + as.numeric(number_min),
+    number = case_when(
+      !is.na(number_nbr)  ~ number_nbr,
+      !is.na(number_pcg)  ~ number_pcg,
+      !is.na(number_time) ~ number_time
+    )
+  ) %>%
+  select(-number_nbr, -number_pcg, -number_time,
+         -number_hour, -number_min, -percent_flag, -colon_flag) %>%
+  # Pivot back to 3 number columns
+  pivot_wider(names_from = val_col, values_from = number) %>%
+  mutate(
+    value1 = ifelse(is.na(number_val), range1_val, number_val),
+    value2 = range2_val
+  ) %>%
+  select(-number_val, -range1_val, -range2_val) %>%
+  # Manual fixes
+  mutate(
+    value1 = case_when(
+      star_year == 2009 & measure_id == "C05" & stars == 2 ~ 44.54,
+      star_year == 2010 & measure_id == "C30" & stars == 5 ~ 50,
+      star_year == 2011 & measure_id == "C23" & stars == 3 ~ value1 / 100,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 1 ~ 0.4,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 2 ~ 0.4,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 3 ~ 0.6,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 4 ~ 0.8,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 5 ~ 1,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 1 ~ 0.4,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 2 ~ 0.4,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 3 ~ 0.6,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 4 ~ 0.8,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 5 ~ 1,
+      TRUE ~ value1
+    ),
+    value2 = case_when(
+      star_year == 2009 & measure_id %in% c("D02", "D04") & stars == 5 ~ 0.001,
+      star_year == 2009 & measure_id == "C05" & stars == 3 ~ 67.71,
+      star_year == 2010 & measure_id == "C30" & stars == 4 ~ 50,
+      star_year == 2011 & measure_id == "C13" & stars == 2 ~ 0.81,
+      star_year == 2011 & measure_id == "C23" & stars == 3 ~ value2 / 100,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 1 ~ NA_real_,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 2 ~ 0.6,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 3 ~ 0.8,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 4 ~ 1,
+      star_year == 2017 & measure_id %in% c("D06", "C28") & stars == 5 ~ NA_real_,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 1 ~ NA_real_,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 2 ~ 0.6,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 3 ~ 0.8,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 4 ~ 1,
+      star_year == 2018 & measure_id %in% c("D06", "C30") & stars == 5 ~ NA_real_,
+      star_year == 2022 & measure_id == "D04" &
+        cut_point_type == "Part D MA-PD" & stars == 4 ~ 0.684211,
+      star_year == 2022 & measure_id == "D04" &
+        cut_point_type == "Part D PDP"   & stars == 4 ~ 0.809524,
+      TRUE ~ value2
+    ),
+    stars = case_when(
+      star_year == 2010 & measure_id == "C30" ~ 6L - stars,
+      TRUE ~ stars
+    )
+  ) %>%
+  # Generally, CAHPS measures don't have cutpoints between 2009 and 2011. For
+  # some reason, these three (D11/D12/D13) had one cut point number filled in,
+  # so I'm deleting them.
+  filter(!(star_year == 2011 & measure_id %in% c("D11", "D12", "D13")))
+
+
+bigger_is_better_func <- function(df) {
+  stars <- df %>% arrange(value1, stars) %>% pull(stars)
+  all(1:nrow(df) == order(stars))
+}
+smaller_is_better_func <- function(df) {
+  stars <- df %>% arrange(value1, desc(stars)) %>% pull(stars)
+  all(nrow(df):1 == order(stars))
+}
+
+bigger_better_df <-
+  cp_as_floats_df %>%
+  arrange(star_year, measure_id, cut_point_type, stars) %>%
+  group_by(star_year, measure_id, cut_point_type) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    higher_is_better  = map_lgl(data, bigger_is_better_func),
+    smaller_is_better = map_lgl(data, smaller_is_better_func)
+  ) %>%
+  # Manual fixes
+  mutate(
+    higher_is_better = case_when(
+      star_year == 2013 & measure_id == "D13" ~ TRUE,
+      star_year == 2014 & measure_id == "D10" ~ TRUE,
+      star_year == 2021 & measure_id == "D04" ~ FALSE,
+      TRUE ~ higher_is_better
+    ),
+    smaller_is_better = case_when(
+      star_year == 2013 & measure_id == "D13" ~ FALSE,
+      star_year == 2014 & measure_id == "D10" ~ FALSE,
+      star_year == 2021 & measure_id == "D04" ~ TRUE,
+      TRUE ~ smaller_is_better
+    )
+  )
+
+cp_as_floats_df
+bigger_better_df
+```
+
+
+```{r}
+# These are the only measures that may be greater than 1.0 (or 100%) or less
+# than 0. All other measures will be ratios with values from 0 to 1.
+non_percent_re <-
+  "(complaint|time\\b|mpf.*composite|appeals.*auto.*forward|improvement)"
+non_percent_measure_df <-
+  measure_df %>%
+  filter(grepl(non_percent_re, measure_standard_name, ignore.case = TRUE)) %>%
+  filter(!display_measure) %>%
+  select(measure_code, star_year, measure_id, measure_standard_name)
+
+divide_by_100_df <-
+  cp_as_floats_df %>%
+  anti_join(non_percent_measure_df, by = c("star_year", "measure_id")) %>%
+  pivot_longer(value1:value2, names_to = "val_name", values_to = "value") %>%
+  filter(!is.na(value)) %>%
+  group_by(star_year, cut_point_type, measure_id) %>%
+  summarize(
+    min_val = min(value),
+    avg_val = mean(value),
+    max_val = max(value),
+    .groups = "drop"
+  ) %>%
+  arrange(cut_point_type, star_year) %>%
+  filter(avg_val > 1)
+
+cp_val1_val2_df <-
+  cp_as_floats_df %>%
+  left_join(
+    divide_by_100_df %>%
+      transmute(star_year, cut_point_type, measure_id, denom = 100) %>%
+      distinct(),
+    by = c("star_year", "cut_point_type", "measure_id")
+  ) %>%
+  mutate(
+    denom = replace_na(denom, 1),
+    value1 = value1 / denom,
+    value2 = value2 / denom
+  ) %>%
+  select(-denom)
+
+star_bounds_df <-
+  cp_val1_val2_df %>%
+  group_by(star_year, cut_point_type, measure_id) %>%
+  summarize(
+    min_star = min(stars),
+    max_star = max(stars),
+    .groups = "drop"
+  )
+
+measure_star_ranges_df <-
+  cp_val1_val2_df %>%
+  inner_join(
+    bigger_better_df %>%
+      select(star_year, cut_point_type, measure_id, higher_is_better),
+    by = c("star_year", "cut_point_type", "measure_id")
+  ) %>%
+  inner_join(
+    star_bounds_df,
+    by = c("star_year", "cut_point_type", "measure_id")
+  ) %>%
+  mutate(
+    lower_bound = case_when(
+      higher_is_better  & is.na(value2) & stars == min_star ~ -Inf,
+      !higher_is_better & is.na(value2) & stars == min_star ~ value1,
+      higher_is_better  & is.na(value2) & stars == max_star ~ value1,
+      !higher_is_better & is.na(value2) & stars == max_star ~ -Inf,
+      value1 < value2 ~ value1,
+      TRUE            ~ value2
+    ),
+    upper_bound = case_when(
+      higher_is_better  & is.na(value2) & stars == min_star ~ value1,
+      !higher_is_better & is.na(value2) & stars == min_star ~ Inf,
+      higher_is_better  & is.na(value2) & stars == max_star ~ Inf,
+      !higher_is_better & is.na(value2) & stars == max_star ~ value1,
+      value1 < value2 ~ value2,
+      TRUE            ~ value1
+    )
+  ) %>%
+  select(
+    star_year, cut_point_type, measure_id,
+    stars, lower_bound, upper_bound, higher_is_better, original_text = text
+  )
+
+
+cut_point_df <-
+  rbind(
+  measure_star_ranges_df %>%
+    filter(higher_is_better) %>%
+    transmute(
+      star_year, cut_point_type, measure_id,
+      low_star          = stars,
+      low_original_text = original_text,
+      cut_point_1       = upper_bound,
+      higher_is_better
+    ) %>%
+    mutate(high_star = low_star + 1L) %>%
+    inner_join(
+      measure_star_ranges_df %>%
+        transmute(
+          star_year, cut_point_type, measure_id,
+          high_star          = stars,
+          high_original_text = original_text,
+          cut_point_2        = lower_bound
+        ),
+      by = c("star_year", "cut_point_type", "measure_id", "high_star")
+    ),
+  measure_star_ranges_df %>%
+    filter(!higher_is_better) %>%
+    transmute(
+      star_year, cut_point_type, measure_id,
+      low_star          = stars,
+      low_original_text = original_text,
+      cut_point_1       = lower_bound,
+      higher_is_better
+    ) %>%
+    mutate(high_star = low_star + 1L) %>%
+    inner_join(
+      measure_star_ranges_df %>%
+        transmute(
+          star_year, cut_point_type, measure_id,
+          high_star          = stars,
+          high_original_text = original_text,
+          cut_point_2        = upper_bound
+        ),
+      by = c("star_year", "cut_point_type", "measure_id", "high_star")
+    )
+  ) %>%
+  transmute(
+    star_year, cut_point_type, measure_id,
+    cut_point = cut_point_1,
+    low_star, high_star,
+    higher_is_better,
+    low_original_text, high_original_text
+  )
+
+
+measure_star_ranges_df
+cut_point_df
+```
+
+
+```{r}
+save(measure_star_ranges_df,
+     file = file.path(dirs$rdata, "07_measure_star_ranges_df.RData"))
+save(cut_point_df, file = file.path(dirs$rdata, "07_cut_point_df.RData"))
+```
+
+
+
+
+# Testing and scratch work
+
+```{r, eval=FALSE}
+# All measures that didn't get a `higher_is_better` value are from CAHPS
+# between 2009 and 2011
+measure_df %>%
+  left_join(bigger_better_df, by = c("star_year", "measure_id")) %>%
+  filter(is.na(higher_is_better)) %>%
+  count(data_source, star_year)
+
+# The improvement measures are the only ones that can have negative values or
+# cut points
+cp_as_floats_df %>%
+  filter(value1 < 0 | value2 < 0) %>%
+  inner_join(measure_df, by = c("star_year", "measure_id")) %>%
+  count(measure_standard_name)
+```
+

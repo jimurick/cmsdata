@@ -1,0 +1,479 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(gganimate)
+library(fable)
+
+load(file = "shiny_df_list_2021-11-20.RData")
+
+measure_df            <- shiny_df_list$measure_df
+data_df               <- shiny_df_list$data_df
+contract_df           <- shiny_df_list$contract_df
+c_cutpoints_df        <- shiny_df_list$c_cutpoints_df
+d_cutpoints_df        <- shiny_df_list$d_cutpoints_df
+c_cutpoint_polygon_df <- shiny_df_list$c_cutpoint_polygon_df
+d_cutpoint_polygon_df <- shiny_df_list$d_cutpoint_polygon_df
+```
+
+
+```{r}
+all_measure_codes <- measure_df %>% filter(star_year == 2022L) %>%
+  distinct(measure_code) %>% pull(measure_code) %>% unique()
+cahps_measure_codes <- measure_df %>% filter(star_year == 2022L) %>%
+  filter(grepl("CAHPS", data_source)) %>% pull(measure_code)
+improvement_measure_codes <- measure_df %>% filter(star_year == 2022L) %>%
+  filter(grepl("Improvement", measure_name)) %>% pull(measure_code)
+other_measure_codes <- setdiff(
+   measure_df %>% filter(star_year == 2022L) %>% pull(measure_code),
+   c(cahps_measure_codes, improvement_measure_codes)
+)
+non_improvement_measure_codes <- setdiff(all_measure_codes,
+                                         improvement_measure_codes)
+
+email_df <-
+  rbind(
+    tibble(Category = "CAHPS", measure_code = cahps_measure_codes),
+    tibble(Category = "Improvement", measure_code = improvement_measure_codes),
+    tibble(Category = "Other", measure_code = other_measure_codes)
+  )
+
+temp_measure_df <-
+  measure_df %>%
+  select(measure_code, star_year, data_start_date, data_end_date) %>%
+  filter(grepl("_2022$", measure_code))
+
+repeat_measure_df <-
+  temp_measure_df %>%
+  mutate(next_year = star_year + 1L) %>%
+  inner_join(temp_measure_df, by = c("measure_code", "next_year"="star_year")) %>%
+  filter(data_start_date.x == data_start_date.y) %>%
+  transmute(
+    measure_code,
+    year1 = star_year,
+    year2 = next_year
+  ) %>%
+  arrange(year1, measure_code)
+
+relevant_data_df <-
+  data_df %>%
+  filter(grepl("_2022$", measure_code)) %>%
+  filter(!is.na(value), measure_code %in% non_improvement_measure_codes) %>%
+  filter(measure_code != "C01_2022" | star_year >= 2016L) %>%
+  filter(measure_code != "C14_2022" | star_year >= 2018L) %>%
+  filter(measure_code != "C28_2022" | star_year >= 2016L) %>%
+  filter(measure_code != "D01_2022" | star_year >= 2016L)
+```
+
+
+
+```{r}
+
+filter_data_df <- function(df) {
+  grp <- cumsum(c(1, diff(df$star_year) != -1))
+  df[grp == 1, ]
+}
+
+rearrange_data_df <- function(df) {
+  tibble(
+    truth = df$value[1],
+    data  = list(df[-1, ])
+  )
+}
+
+temp_df <-
+  relevant_data_df %>%
+  arrange(measure_code, contract_id, desc(star_year)) %>%
+  group_by(measure_code, contract_id) %>%
+  nest() %>%
+  mutate(data = map(data, filter_data_df)) %>%
+  mutate(
+    first_year = map_dbl(data, ~min(.x$star_year)),
+    last_year  = map_dbl(data, ~max(.x$star_year))
+  ) %>%
+  filter(last_year == 2022L, first_year <= 2019L) %>%
+  mutate(data = map(data, rearrange_data_df)) %>%
+  unnest(data)
+
+
+glm_func <- function(df, measure_code) {
+  if (measure_code %in% c("C23_2022", "D02_2022")) {
+    fam <- quasipoisson
+  } else {
+    fam <- quasibinomial
+  }
+  glm(value ~ star_year, family = fam, data = df)
+}
+
+ts_func <- function(df) {
+  df %>%
+    as_tsibble(index = star_year) %>%
+    model(
+      arima = ARIMA(value)
+    ) %>%
+    forecast(h = 1) %>%
+    as_tibble() %>%
+    transmute(
+      model      = .model,
+      star_year,
+      dist       = value,
+      pred_arima = .mean
+    )
+}
+
+lm_df <-
+  temp_df %>%
+  mutate(
+    mod_ols  = map(data, ~lm(value ~ star_year, .x)),
+    mod_glm  = map2(data, measure_code, glm_func),
+    pred_ols = map_dbl(mod_ols, ~predict(.x, newdata = tibble(star_year = 2022L))),
+    pred_glm = map_dbl(mod_glm, ~predict(.x, newdata = tibble(star_year = 2022L),
+                                         type = "response"))
+  )
+
+ts_df <-
+  temp_df %>%
+  mutate(ts_data = map(data, ts_func)) %>%
+  unnest(ts_data)
+
+
+test_df <-
+  lm_df %>%
+  select(measure_code, contract_id, truth, pred_ols, pred_glm) %>%
+  inner_join(
+    ts_df %>% select(measure_code, contract_id, pred_arima),
+    by = c("measure_code", "contract_id")
+  ) %>%
+  pivot_longer(pred_ols:pred_arima, names_to = "model", values_to = "pred") %>%
+  mutate(
+    model = map_chr(model, ~str_sub(.x, start = 6L)),
+    pred  = case_when(pred > 1 ~ 1,
+                      pred < 0 ~ 0,
+                      TRUE     ~ pred)
+  ) %>%
+  group_by(measure_code, model) %>%
+  summarize(
+    abs_t = abs(mean(pred - truth) / sd(pred - truth)),
+    .groups = "drop"
+  ) %>%
+  arrange(measure_code, abs_t) %>%
+  group_by(measure_code) %>%
+  nest() %>%
+  mutate(
+    data = map(data, function(df) df %>% mutate(rank = 1:n())),
+    best = map_chr(data, function(df) df[df$rank == 1, ]$model)
+  ) %>%
+  unnest(data) %>%
+  select(-rank) %>%
+  pivot_wider(id_cols = c(measure_code, best), names_from = model, values_from = abs_t)
+
+
+head(lm_df)
+lm_df %>% select(-data, -mod_ols, -mod_glm)
+ts_df
+table(test_df$best)
+```
+
+
+```{r}
+test_df %>% filter(best == "ols") %>% pull(measure_code)
+test_df %>% filter(best == "glm") %>% pull(measure_code)
+test_df %>% filter(best == "arima") %>% pull(measure_code)
+```
+
+
+
+```{r}
+data_df %>%
+  filter(!is.na(value), grepl("_2022$", measure_code)) %>%
+  arrange(star_year, measure_code) %>%
+  group_by(measure_code, star_year) %>%
+  summarize(n = n()) %>%
+  pivot_wider(id_cols = measure_code, names_from = star_year, values_from = n)
+
+data_df %>%
+  filter(!is.na(value), grepl("_2022$", measure_code)) %>%
+  arrange(star_year, measure_code) %>%
+  group_by(measure_code, star_year) %>%
+  summarize(n = n()) %>%
+  inner_join(
+    measure_df %>%
+      filter(star_year == 2022) %>%
+      select(measure_code, domain_name),
+    by = "measure_code"
+  ) %>%
+  ggplot(aes(star_year, n, group = measure_code, color = measure_code)) +
+    geom_line(size = 2, alpha = 0.6) +
+    facet_wrap(~domain_name) +
+    theme(legend.position = "none")
+```
+
+
+```{r}
+data_df %>%
+  filter(!is.na(value), measure_code %in% c("C23_2022", "D02_2022")) %>%
+  arrange(star_year, measure_code) %>%
+  group_by(measure_code, star_year) %>%
+  summarize(n = n(), .groups = "drop") %>%
+  pivot_wider(id_cols = measure_code, names_from = star_year, values_from = n)
+
+data_df %>%
+  filter(!is.na(value), measure_code == "C23_2022") %>%
+  filter(value < 2) %>%
+  ggplot(aes(value)) +
+    geom_histogram(bins = 50) +
+    facet_wrap(~star_year)
+
+data_df %>%
+  filter(!is.na(value), measure_code == "D02_2022") %>%
+  filter(value < 2) %>%
+  ggplot(aes(value)) +
+    geom_histogram(bins = 50) +
+    facet_wrap(~star_year)
+```
+
+```{r}
+c_cutpoint_polygon_df
+
+mad <- function(v) {
+  tibble(
+      x = rep(v, times = length(v)),
+      y = rep(v, each = length(v))
+    ) %>%
+    transmute(abs_diff = abs(x - y)) %>%
+    summarize(avg = mean(abs_diff)) %>%
+    pull(avg)
+}
+
+normal_df <-
+  rbind(
+    c_cutpoint_polygon_df %>%
+      inner_join(
+        relevant_data_df %>% distinct(measure_code, star_year),
+        by = c("measure_code", "star_year")
+      ) %>%
+      mutate(stars = as.integer(as.factor(stars))) %>%
+      filter(
+        (cutpoints_asc == 1 & pt_order == 2 & stars > 1) |
+        (cutpoints_asc == 0 & pt_order == 5 & stars > 1)
+      ) %>%
+      transmute(measure_code, line = as.character(stars), star_year, value) %>%
+      arrange(measure_code, line, star_year),
+    
+    d_cutpoint_polygon_df %>%
+      filter(org_type == "MA-PD") %>%
+      inner_join(
+        relevant_data_df %>% distinct(measure_code, star_year),
+        by = c("measure_code", "star_year")
+      ) %>%
+      mutate(stars = as.integer(as.factor(stars))) %>%
+      filter(
+        (cutpoints_asc == 1 & pt_order == 2 & stars > 1) |
+        (cutpoints_asc == 0 & pt_order == 5 & stars > 1)
+      ) %>%
+      transmute(measure_code, line = as.character(stars), star_year, value) %>%
+      arrange(measure_code, line, star_year),
+    
+    relevant_data_df %>%
+      inner_join(
+        relevant_data_df %>% distinct(measure_code, star_year),
+        by = c("measure_code", "star_year")
+      ) %>%
+      filter(contract_id %in% c("H3924", "H3954")) %>%
+      transmute(
+        measure_code,
+        line = case_when(contract_id == "H3924" ~ "PPO",
+                         contract_id == "H3954" ~ "HMO"),
+        star_year = as.double(star_year),
+        value
+      )
+  )
+
+normal_df %>% filter(measure_code == "D03_2022") %>%
+  ggplot(aes(star_year, value, group = line, color = line)) + geom_line()
+normal_df %>% filter(measure_code == "C24_2022") %>%
+  ggplot(aes(star_year, value, group = line, color = line)) + geom_line()
+normal_df %>% filter(measure_code == "C22_2022") %>%
+  ggplot(aes(star_year, value, group = line, color = line)) + geom_line()
+
+mad_df <-
+  normal_df %>%
+  group_by(measure_code, line) %>%
+  nest() %>%
+  mutate(
+    mad = map_dbl(data, ~mad(.x$value)),
+    sd  = map_dbl(data, ~sd(.x$value))
+  ) %>%
+
+temp_df2 <-
+  normal_df %>%
+  group_by(measure_code, line) %>%
+  nest() %>%
+  mutate(
+    mod           = map(data, ~lm(value~star_year, data=.x)),
+    r_squared     = map_dbl(mod, ~summary(.x)$r.squared),
+    resid_std_err = map_dbl(mod, ~summary(.x)$sigma),
+    beta_std_err  = map_dbl(
+      mod, ~tidy(.x) %>% filter(term == "star_year") %>% pull(std.error)
+    ),
+    t_stat        = map_dbl(
+      mod, ~tidy(.x) %>% filter(term == "star_year") %>% pull(statistic)
+    )
+  )
+
+temp_df2 %>% filter(line == "HMO") %>% arrange(r_squared)
+temp_df2 %>% filter(measure_code == "C22_2022")
+relevant_data_df %>% filter(measure_code == "C22_2022") %>%
+  filter(contract_id %in% c("H3924", "H3954"))
+
+```
+
+
+
+```{r}
+final_df <-
+  temp_df2 %>%
+  select(measure_code, line, r_squared, resid_std_err) %>%
+  inner_join(
+    measure_df %>% filter(star_year == 2022L) %>%
+      distinct(measure_code, measure_name),
+    by = "measure_code"
+  ) %>%
+  mutate(measure_code = map_chr(measure_code, ~str_sub(.x, end = 3L))) %>%
+  pivot_wider(names_from = line, values_from = c(r_squared, resid_std_err)) %>%
+  select(all_of(c(
+    "measure_code",  "measure_name",
+    "r_squared_HMO", "resid_std_err_HMO",
+    "r_squared_PPO", "resid_std_err_PPO",
+    "r_squared_2",   "resid_std_err_2",
+    "r_squared_3",   "resid_std_err_3",
+    "r_squared_4",   "resid_std_err_4",
+    "r_squared_5",   "resid_std_err_5"
+  )))
+
+final_df <-
+  temp_df2 %>%
+  select(measure_code, line, r_squared, beta_std_err) %>%
+  rename(resid_std_err = beta_std_err) %>%
+  inner_join(
+    measure_df %>% filter(star_year == 2022L) %>%
+      distinct(measure_code, measure_name),
+    by = "measure_code"
+  ) %>%
+  mutate(measure_code = map_chr(measure_code, ~str_sub(.x, end = 3L))) %>%
+  pivot_wider(names_from = line, values_from = c(r_squared, resid_std_err)) %>%
+  select(all_of(c(
+    "measure_code",  "measure_name",
+    "r_squared_HMO", "resid_std_err_HMO",
+    "r_squared_PPO", "resid_std_err_PPO",
+    "r_squared_2",   "resid_std_err_2",
+    "r_squared_3",   "resid_std_err_3",
+    "r_squared_4",   "resid_std_err_4",
+    "r_squared_5",   "resid_std_err_5"
+  )))
+
+final_df
+```
+
+
+```{r}
+write.csv(final_df, file = "final_stats_df_2021-12-01.csv", row.names = FALSE)
+```
+
+```{r}
+measure_df %>% filter(star_year == 2022) %>% select(measure_code, overall_weight)
+temp_df2 %>% ungroup() %>% distinct(measure_code) %>% pull(measure_code)
+```
+
+
+```{r, fig.width = 8, fig.height = 4}
+plot_df <-
+  temp_df2 %>%
+  select(measure_code, line, r_squared) %>%
+  inner_join(
+    mad_df %>% select(measure_code, line, mad, sd),
+    by = c("measure_code", "line")
+  ) %>%
+  inner_join(
+    data_df %>% filter(contract_id %in% c("H3924", "H3954")) %>%
+      mutate(
+        line = ifelse(contract_id == "H3924", "PPO", "HMO"),
+        stars = factor(stars)
+      ) %>%
+      filter(star_year == 2022L, !is.na(value)) %>%
+      select(measure_code, line, stars),
+    by = c("measure_code", "line")
+  ) %>%
+  mutate(measure_code = str_sub(measure_code, end = 3L)) %>%
+  inner_join(
+    measure_df %>% filter(star_year == 2022) %>%
+      transmute(measure_code = measure_id, weight = overall_weight),
+    by = "measure_code"
+  )
+
+plot_df %>%
+  mutate(line = str_c("GHP's ", line)) %>%
+  #filter(line == "HMO") %>%
+  ggplot(aes(sd, r_squared, color = stars, size = weight)) +
+    geom_point(alpha = 0.6) +
+    scale_size_area() +
+    scale_color_manual(
+        values = c("red3", "tomato", "yellow3", "green1", "green4")
+    ) +
+    ggrepel::geom_text_repel(aes(label = measure_code), size = 4) +
+    theme_bw() +
+    theme(
+      legend.position = "none",
+      axis.title = element_text(size = 14),
+      strip.text.x = element_text(size = 14)
+    ) +
+    facet_wrap(~line) +
+    xlab("Value Std Dev") + ylab("R squared")
+
+```
+
+
+
+
+
+
+
+
+```{r}
+beneficiary_dir <- "C:/Users/jurick/Downloads/CPSC_Enrollment_2021_11/CPSC_Enrollment_2021_11"
+list.files(beneficiary_dir)
+beneficiary_file <- str_c(beneficiary_dir, "/", "CPSC_Enrollment_Info_2021_11.csv")
+beneficiary_head_df <- read.csv(file = beneficiary_file, nrows = 6, check.names = FALSE)
+beneficiary_head_df
+
+beneficiary_df <-
+  read.csv(file = beneficiary_file, check.names = FALSE) %>%
+  filter(str_trim(Enrollment) != "*", State == "PA") %>%
+  mutate(Enrollment = as.double(Enrollment)) %>%
+  rename(contract_id = `Contract Number`, county = County) %>%
+  group_by(contract_id, county) %>%
+  summarize(members = sum(Enrollment), .groups = "drop")
+
+beneficiary_df %>% filter(county == "Montour") %>%
+  left_join(contract_df, by = "contract_id") %>%
+  select(members, contract_id, contract_name) %>% arrange(desc(members))
+
+beneficiary_df %>% group_by(contract_id, county) %>%
+  summarize(members = sum(members), .groups = "drop") %>%
+  left_join(contract_df, by = "contract_id") %>%
+  select(members, contract_id, contract_name) %>% arrange(desc(members))
+
+beneficiary_df %>% group_by(contract_id) %>%
+  summarize(members = sum(members), .groups = "drop") %>%
+  left_join(contract_df, by = "contract_id") %>%
+  filter(grepl("GEIS", contract_name)) %>%
+  select(members, contract_id, contract_name) %>% arrange(desc(members))
+```
+
+

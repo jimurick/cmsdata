@@ -1,0 +1,321 @@
+---
+title: "Measure Values"
+output:
+html_notebook: default
+---
+
+
+```{r}
+source("init.R")
+#load(file.path(dirs$rdata, "03_measure_df.RData"))
+```
+
+
+```{r}
+file_vec_1 <-
+  get_unzipped_files_by_pattern("display[^/]*measure[^/]*data.*output[^/]*csv$")
+file_vec_2 <-
+  get_unzipped_files_by_pattern("display[^/]*measure[^/]*/[^/]*display[^/]*measures[^/]*csv$")
+file_vec_2 <- file_vec_2[as.character(c(20103, 20114, 2012, 2018:2021))]
+file_vec <- c(file_vec_1, file_vec_2)
+
+display_measure_file_df <-
+  tibble(
+    star_year = str_sub(names(file_vec), end = 4L),
+    filename = unname(file_vec)
+  ) %>%
+  arrange(star_year)
+
+write.csv(display_measure_file_df, row.names = FALSE,
+          file.path(dirs$table, "file_info_display_temp.csv"))
+```
+
+
+
+```{r}
+
+process_display_measures <- function(...) {
+  row_list <- list(...)
+  
+  top_rows_df <-
+    row_list %$%
+    read.csv(filename, header = FALSE, skip = skip,
+             nrows = nrows)[, first_col:last_col] %>%
+    t() %>%
+    as_tibble()
+  
+  initial_measure_df <- 
+    row_list %$% top_rows_df[, c(part_row, measure_row)]
+  colnames(initial_measure_df) <- c("part_text", "measure_name")
+  
+  if (row_list$measures_numbered) {
+    display_measures_df <-
+      str_match(initial_measure_df$measure_name, '(.*) ?- ?([A-Z0-9]{5})$') %>%
+      as_tibble() %>%
+      `[`(1:nrow(initial_measure_df), c("V2", "V3")) %>%
+      select(V3, V2) %>%
+      mutate(across(everything(), str_trim))
+    colnames(display_measures_df) <- c("measure_id", "measure_name")
+  } else {
+    temp_measure_df <-
+      initial_measure_df %>%
+      mutate(
+        part = case_when(
+          grepl("both",   part_text, ignore.case = TRUE) ~ "E",
+          grepl("part c", part_text, ignore.case = TRUE) ~ "C",
+          grepl("part d", part_text, ignore.case = TRUE) ~ "D"
+        ),
+        part_flag = grepl("(part c|part d|both)", part_text, ignore.case = TRUE),
+        part_nbr = cumsum(part_flag)
+      )
+    parts <- temp_measure_df %>% filter(part_flag) %>% pull(part)
+    display_measures_df <-
+      temp_measure_df %>%
+      mutate(part = map_chr(part_nbr, ~parts[.x])) %>%
+      select(part, measure_name) %>%
+      mutate(across(everything(), str_trim)) %>%
+      nest(data = measure_name) %>%
+      mutate(data = map(data, ~mutate(.x, row_nbr=1:n()))) %>%
+      unnest(data) %>%
+      mutate(measure_id = sprintf("DM%s%02d", part, row_nbr)) %>%
+      select(measure_id, measure_name)
+  }
+  display_measures_df
+}
+
+process_display_scores <- function(...) {
+  row_list <- list(...)
+  
+  display_measure_values_df <-
+    row_list %$%
+    read.csv(filename, header = FALSE,
+             skip = skip + nrows)[, c(1, first_col:last_col)] %>%
+    as_tibble()
+  colnames(display_measure_values_df) <-
+    c("contract_id", row_list$display_measures_df[[1]]$measure_id)
+  
+  display_measure_values_df %>%
+    mutate(across(everything(), str_trim)) %>%
+    filter(contract_id != "")
+}
+
+
+file_df <-
+  read.csv(file.path(dirs$table, "file_info_display.csv"))
+
+filename_2012 <- file_df %>% filter(star_year == 2012) %>% pull(filename)
+filename_2019 <- file_df %>% filter(star_year == 2019) %>% pull(filename)
+file_df <- file_df %>% filter(!(star_year %in% c(2012, 2019)))
+
+almost_all_data_df <-
+  file_df %>%
+  group_by(star_year) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    display_measures_df = map(data, ~do.call(process_display_measures, .x))
+  ) %>%
+  unnest(data) %>%
+  group_by(star_year) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(
+    display_measure_values_df = map(data, ~do.call(process_display_scores, .x))
+  ) %>%
+  unnest(data) %>%
+  select(star_year, display_measures_df, display_measure_values_df)
+
+
+almost_all_data_df
+```
+
+
+
+```{r}
+initial_2012_df <- read.csv(filename_2012, check.names = FALSE)
+c_start <- which(colnames(initial_2012_df) == "Part C")
+d_start <- which(colnames(initial_2012_df) == "Part D")
+measure_names_2012 <-
+  c(t(initial_2012_df[1, ])[c_start:(d_start-1)],
+    t(initial_2012_df[2, ])[d_start:ncol(initial_2012_df)]) %>%
+  str_trim
+display_measures_2012_df <-
+  as_tibble(str_match(measure_names_2012, '(.*) ?- ?([A-Z0-9]{5})$')) %>%
+  `[`(1:length(measure_names_2012), c("V2", "V3")) %>%
+  select(V3, V2)
+colnames(display_measures_2012_df) <- c("measure_id", "measure_name")
+
+display_values_2012_df <- initial_2012_df[-(1:2), -(2:4)]
+colnames(display_values_2012_df) <-
+  c("contract_id", display_measures_2012_df$measure_id)
+
+display_measures_2012_df
+display_values_2012_df
+```
+
+
+
+```{r}
+initial_2019_df <- read.csv(filename_2019, sep = "\t", col.names = "x")
+
+temp_2019_df <-
+  initial_2019_df %>%
+  mutate(x = str_split(gsub(",+$", "", x), "\n")) %>%
+  unnest(x) %>%
+  mutate(y = str_split(x, "\t"), i = 1:n()) %>%
+  mutate(z = map_int(y, length))
+
+row_151 <-
+  c("H2230", "Blue Cross Blue Shield of Massachusetts",
+    "Bcbs  Of Massachusetts Hmo Blue, Inc.",
+    "Blue Cross and Blue Shield of Massachusetts,Inc.",
+    "79%", "66%", "89%", '91%', "41%", "91", '00:56', "79%", "97%",
+    "0.00%", "75%", "76%",
+    "CMS identified issues with this plan’s data",
+    "CMS identified issues with this plan’s data",
+    "44", '100%', "100%", "100.00%", "0.00%", "00:56", "2%", "0.98%", "100%",
+    "100", "00:18", "98", "0.00%", "47%", "20%", "8%", "0.00%", "11%",
+    "9%", "18%", "0.48", "0.74", "9%", "6%", "48%", "6%", "3%", "100")
+row_157 <-
+  c("H2261", "Blue Cross Blue Shield of Massachusetts",
+    "Bcbs  Of Massachusetts Hmo Blue, Inc.",
+    "Blue Cross and Blue Shield of Massachusetts,Inc.",
+    "Not enough data available", "62%", "92%", "85%", "31%", "92", "00:56",
+    "82%", "98%", "0.00%", "73%", "80%",
+    "CMS identified issues with this plan’s data",
+    "CMS identified issues with this plan’s data",
+    "48", "100%", "100%", "100.00%", "0.00%", "00:56", "3%", "0.80%", "100%",
+    "100", "00:18", "98", "0.00%", "42%", "25%", "9%", "0.00%", "11%", "9%",
+    "18%", "0.00", "0.53", "14%", "22%", '46%', '10%', "7%", "100")
+
+temp_2019_df$y[[151]] <- row_151
+temp_2019_df$y[[157]] <- row_157
+
+measure_names_2019 <- gsub('"', '',
+                      temp_2019_df$y[[2]][5:length(temp_2019_df$y[[2]])])
+display_measures_2019_df <-
+  as_tibble(str_match(measure_names_2019, '(.*) - ([A-Z0-9]{5})$')) %>%
+  `[`(1:length(measure_names_2019), c("V2", "V3")) %>%
+  select(V3, V2)
+colnames(display_measures_2019_df) <- c("measure_id", "measure_name")
+
+display_values_2019_df <-
+  do.call("rbind", lapply(temp_2019_df$y,
+                          function(x) as_tibble(t(tibble(x))))) %>%
+  `[`(-(1:2), -(2:4))
+
+colnames(display_values_2019_df) <-
+  c("contract_id", display_measures_2019_df$measure_id)
+
+display_measures_2019_df
+display_values_2019_df
+```
+
+
+```{r}
+all_data_df <-
+  rbind(
+    almost_all_data_df,
+    tibble(star_year = 2012,
+           display_measures_df = list(display_measures_2012_df),
+           display_measure_values_df = list(display_values_2012_df)),
+    tibble(star_year = 2019,
+           display_measures_df = list(display_measures_2019_df),
+           display_measure_values_df = list(display_values_2019_df))
+  )
+
+display_measures_df <-
+  all_data_df %>%
+  select(star_year, display_measures_df) %>%
+  unnest(display_measures_df)
+
+unpivoted_measure_values_df <-
+  all_data_df %>%
+  mutate(
+    data = map(display_measure_values_df,
+               ~pivot_longer(.x, -contract_id,
+                             names_to = "measure_id", values_to = "entry"))
+  ) %>%
+  select(star_year, data) %>%
+  unnest(data) %>%
+  filter(str_trim(replace_na(entry, '')) != "") %>%
+  mutate(entry = fix_non_ascii(entry))
+
+display_measures_df
+unpivoted_measure_values_df
+```
+
+
+
+```{r}
+
+almost_done_df <-
+  unpivoted_measure_values_df %>%
+  mutate(
+    number  = ifelse(grepl('^-?[0-9]+([.][0-9]+)?$', entry),
+                     as.numeric(entry), NA_real_),
+    percent = ifelse(grepl('[0-9.]+([.][0-9.]+)?\\s*%$', entry),
+                     entry, NA_character_),
+    percent_denom = ifelse(is.na(percent), 1, 100),
+    percent = as.numeric(gsub("%", "", percent)) / percent_denom,
+    time    = ifelse(grepl('^?[0-9]+:[0-9]+$', entry), entry, NA_character_),
+    hours   = map_chr(time, ~ifelse(is.na(.x), .x, str_split(.x, ":")[[1]][1])),
+    minutes = map_chr(time, ~ifelse(is.na(.x), .x, str_split(.x, ":")[[1]][2])),
+    time    = 60 * as.numeric(hours) + as.numeric(minutes)
+  ) %>%
+  transmute(
+    star_year, measure_id, contract_id,
+    value = case_when(
+      !is.na(number)  ~ number,
+      !is.na(percent) ~ percent,
+      !is.na(time)    ~ time,
+      TRUE            ~ NA_real_
+    ),
+    value_note = ifelse(is.na(number) & is.na(percent) & is.na(time),
+                        entry, NA_character_),
+    value_original_text = entry
+  )
+
+non_pcg_re_vec <-
+  c("mpf.*stability", "hold time", "hospitalization.*preventable",
+    "grievance(s| rate)") %>%
+  paste(collapse = "|")
+non_pcg_re <- sprintf("(%s)", non_pcg_re_vec)
+
+divide_by_100_df <-
+  almost_done_df %>%
+  filter(!is.na(value)) %>%
+  group_by(star_year, measure_id) %>%
+  summarize(
+    minval = min(value),
+    maxval = max(value),
+    .groups = "drop"
+  ) %>%
+  inner_join(display_measures_df, by = c("star_year", "measure_id")) %>%
+  filter(maxval > 1) %>%
+  filter(!grepl(non_pcg_re, measure_name, ignore.case = TRUE)) %>%
+  transmute(star_year, measure_id, denom = 100)
+
+
+display_measure_values_df <-
+  almost_done_df %>%
+  left_join(divide_by_100_df, by = c("star_year", "measure_id")) %>%
+  mutate(
+    denom = replace_na(denom, 1),
+    value = value / denom
+  ) %>%
+  select(star_year, measure_id, contract_id, value,
+         value_note, value_original_text)
+
+display_measure_values_df
+```
+
+
+```{r}
+save(display_measures_df,
+     file = file.path(dirs$rdata, "03_display_measures_df.RData"))
+save(display_measure_values_df,
+     file = file.path(dirs$rdata, "03_display_measure_values_df.RData"))
+```
+
+
