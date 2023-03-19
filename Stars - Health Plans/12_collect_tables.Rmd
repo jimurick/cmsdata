@@ -20,9 +20,9 @@ rdata_files <- c(
   "06_measure_stars_df.RData",
   "07_cut_point_df.RData",
   "07_measure_star_ranges_df.RData",
-  "08_contract_df.RData",
   "09_summary_stars_df.RData",
   "10_cai_df.RData",
+  "10_contract_df.RData",
   "11_disenrollment_df.RData"
 )
 

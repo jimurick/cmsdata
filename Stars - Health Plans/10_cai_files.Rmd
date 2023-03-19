@@ -9,9 +9,12 @@ html_notebook: default
 ```{r}
 source("init.R")
 
+load(file.path(dirs$rdata, "09_contract_df.RData"))
 cai_val_df <- read.csv(file.path(dirs$table, "cai_val_df.csv")) %>% as_tibble()
 ```
 
+
+*TODO*: Add `Puerto Rico Only` flag from CAI files to `contract_df`
 
 ```{r}
 cai_file_vec <- get_unzipped_files_by_pattern("cai.*csv$")
@@ -56,6 +59,7 @@ cai_df <-
   	"2020",    1,          c(1, 6:9),
   	"2021",    1,          c(1, 6:9),
   	"2022",    1,          c(1, 6:9),
+  	"2023",    1,          c(1, 6:9),
   ) %>%
   inner_join(cai_file_df, by = "file_key") %>%
   mutate(
@@ -74,7 +78,43 @@ cai_df
 
 
 ```{r}
+process_one_cai_file_puerto_rico <- function(filename) {
+  df <- read.csv(filename, skip = 1, check.names = FALSE)[, c(1,5)]
+  colnames(df) <- c("contract_id", "puerto_rico_only")
+  df %>%
+    mutate(across(everything(), str_trim)) %>%
+    mutate(puerto_rico_only = (puerto_rico_only == "Yes"))
+}
+
+puerto_rico_only_df <-
+  cai_file_df %>%
+  transmute(
+    star_year = as.integer(star_year),
+    df = map(file_name, process_one_cai_file_puerto_rico)
+  ) %>%
+  unnest(df)
+
+min_star_year <- as.integer(min(cai_file_df$star_year))
+
+contract_df <-
+  contract_df %>%
+  left_join(puerto_rico_only_df, by = c("star_year", "contract_id")) %>%
+  mutate(
+    puerto_rico_only = map2_lgl(
+      star_year, puerto_rico_only,
+      ~ifelse(as.integer(.x) >= min_star_year, replace_na(.y, FALSE), .y)
+    )
+  )
+
+contract_df
+```
+
+
+
+
+```{r}
 save(cai_df, file = file.path(dirs$rdata, "10_cai_df.RData"))
+save(contract_df, file = file.path(dirs$rdata, "10_contract_df.RData"))
 ```
 
 

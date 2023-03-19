@@ -16,7 +16,7 @@ process_one_contract_file <- function(...) {
   df <-
     row_df %$%
     read.csv(filename, skip = skip, colClasses = "character",
-             encoding = encoding)[, first_col:last_col]
+             check.names = FALSE, encoding = encoding)[, first_col:last_col]
   
   col_order <- unlist(row_df %>% select(org_type:parent_name))
   given_cols <- col_order[!is.na(col_order)]
@@ -82,8 +82,7 @@ one_contract_per_year_df
 
 ```{r}
 snp_df <-
-  read.csv(file.path(dirs$table, "snp_df.csv")) %>%
-  mutate(star_year = 2022L)
+  read.csv(file.path(dirs$table, "snp_df.csv"))
 
 snp_df
 ```
@@ -123,6 +122,8 @@ save(contract_df, file = file.path(dirs$rdata, "08_contract_df.RData"))
 # Testing and scratch work
 
 ```{r, eval=FALSE}
+contract_df %>% filter(star_year == 2022)
+
 initial_contract_df %>%
   filter(!is.na(org_type)) %>%
   distinct(star_year, contract_id, org_type) %>%

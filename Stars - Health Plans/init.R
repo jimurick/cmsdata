@@ -18,6 +18,10 @@ fix_dashes      <- function(x) { gsub(wrong_dash,  "-", x) }
 fix_apostrophes <- function(x) { gsub(wrong_apost, "'", x) }
 fix_non_ascii   <- function(x) { fix_dashes(fix_apostrophes(x)) }
 
+fix_utf <- function(x) {
+  gsub("\x92", "'", gsub("\x96", "-", gsub("\x94", "", x)))
+}
+
 get_unzipped_files_by_pattern <- function(file_re) {
   all_year_dirs <- list.dirs(dirs$zip, recursive = FALSE)
   dir_names <- str_extract(all_year_dirs, "20[0-2][0-9]")

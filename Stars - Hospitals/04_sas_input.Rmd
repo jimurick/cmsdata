@@ -1,0 +1,627 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+```{r}
+source("init.R")
+library(data.table)
+
+load(file = file.path(dirs$rdata, "all_data_list.RData"))
+
+all_mort_readm_data_df <- all_data_list$all_mort_readm_data_df
+all_maternal_data_df   <- all_data_list$all_maternal_data_df
+all_hai_data_df        <- all_data_list$all_hai_data_df
+all_hcahps_data_df     <- all_data_list$all_hcahps_data_df
+all_timely_data_df     <- all_data_list$all_timely_data_df
+all_imaging_data_df    <- all_data_list$all_imaging_data_df
+all_ipfqr_data_df      <- all_data_list$all_ipfqr_data_df
+all_hospital_info_df   <- all_data_list$all_hospital_info_df
+all_measure_info_df    <- all_data_list$all_measure_info_df
+all_va_hospital_df     <- all_data_list$all_va_hospital_df
+all_sas_input_df       <- all_data_list$all_sas_input_df
+all_national_rates_df  <- all_data_list$all_national_rates_df
+measure_id_history_df  <- all_data_list$measure_id_history_df
+```
+
+
+
+```{r}
+latest_sas_measures_df <-
+  all_measure_info_df %>%
+  filter(cc_date == "2021-07-01", !is.na(sas_measure_id)) %>%
+  select(measure_id_sas = sas_measure_id, measure_id_std = measure_id,
+         measure_group, higher_is_better, sas_measure_id, sas_measure_stat)
+
+sas_measure_id_conversion_df <-
+  measure_id_history_df %>%
+  filter(cc_date >= "2018-01-01") %>%
+  pivot_longer(
+    -cc_date, names_to = "measure_id_std", values_to = "measure_id_historical"
+  ) %>%
+  filter(!is.na(measure_id_historical))
+
+sas_measure_df <-
+  latest_sas_measures_df %>%
+  left_join(sas_measure_id_conversion_df, by = "measure_id_std") %>%
+  mutate(
+    measure_id_sas = case_when(
+      measure_id_sas == "PSI_4_SURG_COMP" ~ "PSI_04",
+      measure_id_sas == "PSI_90_SAFETY"   ~ "PSI_90",
+      TRUE ~ measure_id_sas
+    )
+  ) %>%
+  arrange(measure_id_std, cc_date)
+
+sas_measure_df %>%
+  filter(grepl("IMM", measure_id_sas) | grepl("IMM", measure_id_std))
+```
+
+
+
+# Measures besides HAI and HCAHPS
+
+```{r}
+sas_most_groups_df <-
+  bind_rows(
+    all_mort_readm_data_df %>%
+      filter(cc_date >= "2018-01-01") %>% select(cc_date, data),
+    all_maternal_data_df %>%
+      filter(cc_date >= "2018-01-01") %>% select(cc_date, data),
+    all_timely_data_df %>%
+      filter(cc_date >= "2018-01-01") %>% select(cc_date, data),
+    all_imaging_data_df %>%
+      filter(cc_date >= "2018-01-01") %>% select(cc_date, data)
+  ) %>%
+  unnest(data) %>%
+  filter(!(
+    (measure_id == "IMM_3") & (provider_id == "220126") & (is.na(score))
+  )) %>%
+  #filter(cc_date <= "2019-01-01", grepl("IMM", measure_id)) %>%
+  inner_join(
+    sas_measure_df,
+    by = c("cc_date", "measure_id" = "measure_id_historical")
+  ) %>%
+  select(
+    cc_date,
+    provider_id,
+    measure_id_sas,
+    score,
+    DEN
+  ) %>%
+  pivot_wider(
+    id_cols = c(cc_date, provider_id),
+    names_from  = measure_id_sas,
+    names_glue  = "{measure_id_sas}_{.value}",
+    values_from = c(score, DEN)
+  )
+
+colnames(sas_most_groups_df) <-
+  gsub("_score$", "", colnames(sas_most_groups_df))
+
+sas_most_groups_df %>% select(cc_date, provider_id, IMM_3)
+
+
+all_measure_info_df %>%
+  filter(cc_date >= "2018-01-01", grepl("PSI.*(0?4|90)", measure_id)) %>%
+  filter(!is.na(sas_measure_id))
+
+temp_df <- all_timely_data_df %>% filter(cc_date == "2018-01-01")
+temp_df$data[[1]] %>% count(measure_id)
+sas_measure_df %>% filter(grepl("IMM", measure_id_historical))
+```
+
+
+# HAI
+
+```{r}
+sas_hai_df <-
+  all_hai_data_df %>%
+  filter(cc_date >= "2018-01-01") %>%
+  select(cc_date, data) %>%
+  unnest(data) %>%
+  filter(!is.na(CI_LOWER) | !is.na(CI_UPPER)) %>%
+  select(
+    cc_date,
+    provider_id,
+    measure_id,
+    SIR,
+    DEN_PRED,
+    DEN_VOL
+  ) %>%
+  pivot_wider(id_cols = c(cc_date, provider_id),
+              names_from = measure_id,
+              names_glue = "{measure_id}_{.value}",
+              values_from = c(SIR, DEN_PRED, DEN_VOL))
+
+colnames(sas_hai_df) <- gsub("_SIR$", "", colnames(sas_hai_df))
+
+sas_hai_df
+```
+
+
+
+# HCAHPS
+
+```{r}
+temp_sas_hcahps_df <-
+  all_hcahps_data_df %>%
+  filter(cc_date >= '2018-01-01') %>%
+  select(cc_date, data) %>%
+  unnest(data) %>%
+  select(
+    cc_date, provider_id, measure_id,
+    STAR_RATING, TOP_BOX,
+    H_NUMB_COMP, H_RESP_RATE_P
+  )
+
+hcahps_star_measure_ids <-
+  sas_measure_df %>%
+  filter(grepl("H[_].*.[_]STAR_RATING", measure_id_sas)) %>%
+  pull(measure_id_std) %>% unique
+
+hcahps_star_df <-
+  temp_sas_hcahps_df %>%
+  filter(measure_id %in% hcahps_star_measure_ids) %>%
+  transmute(cc_date, provider_id, STAR_RATING,
+            measure_id = str_c(measure_id, "_STAR_RATING")) %>%
+  pivot_wider(id_cols = c(cc_date, provider_id),
+              names_from = measure_id, values_from = STAR_RATING)
+
+hcahps_denom_df <-
+  temp_sas_hcahps_df %>%
+  filter(!(measure_id %in% c("H_INDI","H_GLOB"))) %>%
+  select(cc_date, provider_id, H_NUMB_COMP, H_RESP_RATE_P) %>%
+  distinct()
+
+sas_hcahps_df <-
+  full_join(hcahps_star_df, hcahps_denom_df, by = c("cc_date", "provider_id"))
+```
+
+
+# Combine Columns
+
+```{r}
+sas_input_file_hospital_ids <-
+  all_hospital_info_df %>%
+  filter(cc_date == "2021-07-01", in_sas_input_file) %>%
+  pull(provider_id)
+
+sas_df <-
+  sas_most_groups_df %>%
+  full_join(sas_hai_df, by = c("cc_date", "provider_id")) %>%
+  full_join(sas_hcahps_df, by = c("cc_date", "provider_id")) %>%
+  rename(PROVIDER_ID = provider_id) %>%
+  filter(PROVIDER_ID %in% sas_input_file_hospital_ids)
+
+my_sas_input_df <-
+  sas_df %>%
+  group_by(cc_date) %>%
+  nest()
+
+my_sas_input_df
+```
+
+
+```{r}
+save(my_sas_input_df, file = "rdata/my_sas_input_df.RData")
+```
+
+
+
+
+```{r}
+library(data.table)
+#load("rdata/my_sas_input_df.RData")
+load("rdata/measures_202104_dt.rda")
+load("rdata/measure_groups_202104_dt.rda")
+
+check_column_names <- function(sas_input_dt, measures_dt) {
+
+  measures_all <- measures_dt$measure_id
+  # if (!all(measures_all  %in% colnames(sas_input_dt))) {
+  #   measures_all <- measures_dt[retired_2021 == FALSE, ]$measure_id
+  #   if (!all(measures_all %in% colnames(sas_input_dt))) {
+  #     measures_all <- measures_dt[retired_2022 == FALSE, ]$measure_id
+  #     if (!all(measures_all %in% colnames(sas_input_dt))) {
+  #       missing <- setdiff(measures_all, colnames(sas_input_dt))
+  #       missing_str <- paste(missing, collapse = ", ")
+  #       stop(paste("sas_input_dt missing columns: ", missing_str))
+  #     }
+  #   }
+  # }
+  measures_all[measures_all %in% colnames(sas_input_dt)]
+}
+
+sas_step1_standardize_202104 <- function(sas_input_dt) {
+
+  if (!data.table::is.data.table(sas_input_dt)) {
+    data.table::setDT(sas_input_dt)
+  }
+
+  measures_all <- check_column_names(sas_input_dt,
+                                     cmsstars::measures_202104_dt)
+  measure_volume <-
+    colSums(
+      sas_input_dt[
+        , ..measures_all
+      ][
+        , (measures_all) := lapply(.SD, function(x) as.integer(!is.na(x))),
+        .SDcols = measures_all
+      ][]
+    )
+
+  measures_in  <- names(measure_volume[measure_volume >  100])
+  measures_out <- names(measure_volume[measure_volume <= 100])
+  sign_flips <- setNames(measures_202104_dt$flip_sign,
+                         measures_202104_dt$measure_id)
+
+  scale_and_flip <- function(cname) {
+    scale(sas_input_dt[[cname]]) * sign_flips[cname]
+  }
+
+  list(
+    'measure_ids' = measures_in,
+    'dt' =
+      sas_input_dt[
+        , !..measures_out
+      ][
+        , (measures_in) := lapply(names(.SD), scale_and_flip)
+        , .SDcols = measures_in
+      ][],
+    'dropped_measure_ids' = measures_out
+  )
+}
+
+
+sas_step2_groups_202104 <- function(std_data_dt, measure_ids) {
+
+  temp_measures_dt <-
+    data.table::merge.data.table(
+      measures_202104_dt[, c("measure_id", "group_name")],
+      measure_groups_202104_dt, by = "group_name"
+    )
+
+  keep_cols <- c("PROVIDER_ID", measure_ids)
+  group_score_not_std_dt <-
+    data.table::melt.data.table(
+      std_data_dt[, ..keep_cols], "PROVIDER_ID",
+      variable.name = "measure_id", value.name = "value", na.rm = TRUE
+    )[
+      temp_measures_dt, on = "measure_id", nomatch = 0
+    ][
+      , .(
+        score_before_std = mean(value),
+        N = .N,
+        include_group = as.integer(.N >= 3),
+        include_mortsafe = as.integer((sum(mortsafe_flag == 1)) >= 3)
+      )
+      , by = c("PROVIDER_ID", "group_name", "weight")
+    ]
+
+  group_stats_dt <-
+    group_score_not_std_dt[
+      , .(score_avg = mean(score_before_std),
+          score_sd = sd(score_before_std)), by = "group_name"
+    ]
+
+  group_scores_dt <-
+    data.table::merge.data.table(
+      group_score_not_std_dt, group_stats_dt, by = c("group_name")
+    )
+  group_scores_dt[
+    , group_score := (score_before_std - score_avg) / score_sd
+  ][]
+}
+
+
+compute_star_clusters <- function(summary_score) {
+
+  quantiles <- stats::quantile(summary_score, probs = 0.2*(1:4), type=1)
+
+  initial_centers_dt <-
+    data.table::data.table(summary_score = summary_score)[
+      , grp := as.integer(cut(summary_score, breaks = c(-Inf, quantiles, Inf)))
+    ][
+      order(grp),
+      .(summary_score_median = median(summary_score)),
+      by = "grp"
+    ]
+
+  second_centers <-
+    cmsstars::sas_proc_fastclus(
+      summary_score, initial_centers_dt$summary_score_median, iter.max = 1000
+    )$centers
+
+  km <- cmsstars::sas_proc_fastclus(
+    summary_score, second_centers, iter.max = 1000, strict = 1
+  )
+  abs(km$cluster)
+}
+
+sas_step3_stars_202104 <- function(group_scores_dt) {
+
+  group_scores_pivoted_dt <-
+    data.table::dcast(
+      group_scores_dt, PROVIDER_ID ~ group_name,
+      value.var = c("group_score", "N")
+    )
+
+  temp_summary_scores_dt <-
+    group_scores_dt[
+      order(PROVIDER_ID), .(
+        n_groups = sum(include_group),
+        n_mortsafe = sum(include_mortsafe),
+        report_indicator = as.integer(sum(include_group) >= 3) *
+          as.integer(sum(include_mortsafe) >= 1),
+        summary_score = sum(weight * group_score) / sum(weight)
+      ), by = "PROVIDER_ID"
+    ]
+
+  temp_summary_scores_dt[
+    report_indicator == 1,
+    stars := compute_star_clusters(summary_score),
+    by = "n_groups"
+  ]
+
+  data.table::merge.data.table(
+    group_scores_pivoted_dt, temp_summary_scores_dt,
+    by = "PROVIDER_ID", all.x = TRUE
+  )
+}
+
+compute_star_scores_202104 <- function(sas_input_dt) {
+
+  init_list <- sas_step1_standardize_202104(sas_input_dt)
+  group_scores_dt <- sas_step2_groups_202104(init_list$dt,
+                                             init_list$measure_ids)
+  final_dt <- sas_step3_stars_202104(group_scores_dt)
+  data.table::merge.data.table(sas_input_dt, final_dt, by = "PROVIDER_ID",
+                               all.x = TRUE)
+}
+```
+
+
+```{r}
+measures_202207_dt <-
+  cmsstars::measures_202104_dt %>%
+  filter(!(toupper(measure_id) %in% c("OP_30","ED_2B")))
+
+
+sas_step1_standardize_202104 <- function(sas_input_dt) {
+
+  if (!data.table::is.data.table(sas_input_dt)) {
+    data.table::setDT(sas_input_dt)
+  }
+
+  measures_all <- check_column_names(sas_input_dt, measures_202207_dt)
+  measure_volume <-
+    colSums(
+      sas_input_dt[
+        , ..measures_all
+      ][
+        , (measures_all) := lapply(.SD, function(x) as.integer(!is.na(x))),
+        .SDcols = measures_all
+      ][]
+    )
+
+  measures_in  <- names(measure_volume[measure_volume >  100])
+  measures_out <- names(measure_volume[measure_volume <= 100])
+  sign_flips <- setNames(measures_202207_dt$flip_sign,
+                         measures_202207_dt$measure_id)
+
+  scale_and_flip <- function(cname) {
+    scale(sas_input_dt[[cname]]) * sign_flips[cname]
+  }
+
+  list(
+    'measure_ids' = measures_in,
+    'dt' =
+      sas_input_dt[
+        , !..measures_out
+      ][
+        , (measures_in) := lapply(names(.SD), scale_and_flip)
+        , .SDcols = measures_in
+      ][],
+    'dropped_measure_ids' = measures_out
+  )
+}
+
+
+sas_step2_groups_202104 <- function(std_data_dt, measure_ids) {
+
+  temp_measures_dt <-
+    data.table::merge.data.table(
+      measures_202207_dt[, c("measure_id", "group_name")],
+      measure_groups_202104_dt, by = "group_name"
+    )
+
+  keep_cols <- c("PROVIDER_ID", measure_ids)
+  group_score_not_std_dt <-
+    data.table::melt.data.table(
+      std_data_dt[, ..keep_cols], "PROVIDER_ID",
+      variable.name = "measure_id", value.name = "value", na.rm = TRUE
+    )[
+      temp_measures_dt, on = "measure_id", nomatch = 0
+    ][
+      , .(
+        score_before_std = mean(value),
+        N = .N,
+        include_group = as.integer(.N >= 3),
+        include_mortsafe = as.integer((sum(mortsafe_flag == 1)) >= 3)
+      )
+      , by = c("PROVIDER_ID", "group_name", "weight")
+    ]
+
+  group_stats_dt <-
+    group_score_not_std_dt[
+      , .(score_avg = mean(score_before_std),
+          score_sd = sd(score_before_std)), by = "group_name"
+    ]
+
+  group_scores_dt <-
+    data.table::merge.data.table(
+      group_score_not_std_dt, group_stats_dt, by = c("group_name")
+    )
+  group_scores_dt[
+    , group_score := (score_before_std - score_avg) / score_sd
+  ][]
+}
+
+
+compute_star_scores_202207 <- function(sas_input_dt) {
+
+  init_list <- sas_step1_standardize_202207(sas_input_dt)
+  group_scores_dt <- sas_step2_groups_202207(init_list$dt,
+                                             init_list$measure_ids)
+  final_dt <- sas_step3_stars_202104(group_scores_dt)
+  data.table::merge.data.table(sas_input_dt, final_dt, by = "PROVIDER_ID",
+                               all.x = TRUE)
+}
+```
+
+
+
+
+```{r}
+sas_package_data_df <-
+  my_sas_input_df %>%
+  mutate(sas_output_df = map(data, compute_star_scores_202104)) %>%
+  select(-data)
+```
+
+
+```{r}
+save(sas_package_data_df, file = "rdata/sas_package_data_df.RData")
+```
+
+
+
+```{r}
+sas_package_data_df$sas_output_df[[22]]
+colnames(sas_package_data_df$sas_output_df[[22]])
+```
+
+
+
+
+
+```{r}
+sas_dt <- as.data.table(my_sas_input_df$data[[12]])
+sas_col_order <- colnames(all_sas_input_df$data[[15]])
+sas_col_order <- sas_col_order[sas_col_order %in% colnames(sas_dt)]
+sas_dt <- sas_dt[, ..sas_col_order]
+cms_dt <- all_sas_input_df$data[[15]]
+
+sas_dt
+cms_dt
+
+compare_col_vals <- function(col_name) {
+  inner_join(
+      sas_dt %>% select_at(c("PROVIDER_ID", col_name)) %>%
+        rename_at(all_of(col_name), function(x) str_c("me")),
+      cms_dt %>% select_at(c("PROVIDER_ID", col_name)) %>%
+        rename_at(all_of(col_name), function(x) str_c("cms")),
+      by = "PROVIDER_ID"
+    ) %>%
+    mutate(same = (me == cms)) %>%
+    count(same)
+}
+
+tibble(col_name = colnames(sas_dt)[-1]) %>%
+  mutate(compare_df = map(col_name, compare_col_vals)) %>%
+  unnest(compare_df) %>%
+  filter(!same | is.na(same))
+
+
+my_stars <- compute_star_scores_202104(sas_dt)
+
+cms_stars <-
+  all_hospital_info_df %>%
+  filter(cc_date == "2021-04-01") %>%
+  select(PROVIDER_ID = provider_id, overall_rating)
+
+compare_stars_df <-
+  my_stars %>%
+  select(PROVIDER_ID, stars) %>%
+  inner_join(cms_stars, by = "PROVIDER_ID") %>%
+  mutate(same = (stars == overall_rating))
+
+table(compare_stars_df$same) / nrow(compare_stars_df %>% filter(!is.na(same)))
+table(compare_stars_df$stars, compare_stars_df$overall_rating)
+```
+
+
+
+```{r}
+find_blank_measures <- function(df) {
+  df %>%
+    pivot_longer(-PROVIDER_ID, names_to = "measure_id", values_to = "score") %>%
+    group_by(measure_id) %>%
+    summarize(n = n(), na_count = sum(is.na(score)), .groups = "drop") %>%
+    filter(n == na_count) %>%
+    pull(measure_id)
+}
+
+missing_measure_df <-
+  my_sas_input_df %>%
+  mutate(measure_id = map(data, find_blank_measures)) %>%
+  select(-data) %>%
+  unnest(measure_id) %>%
+  mutate(den = grepl("_DEN$", measure_id)) %>%
+  filter(!den) %>%
+  select(-den) %>%
+  mutate(x = "x") %>%
+  pivot_wider(names_from = measure_id, values_from = x, values_fill = "")
+
+missing_measure_df
+```
+
+
+```{r}
+new_2018_07       <- c("EDAC_30_PN", "SEP_1") # Readmission, Process
+new_in_2020       <- c("OP_36", "OP_35_ADM", "OP_35_ED") # Readmission
+delayed_1_quarter <- c("OP_32", "OP_35_ADM", "OP_35_ED") # Readmission
+delayed_2_quarters <- c("MORT_30_PN", "PSI_4_SURG_COMP", "PSI_90_SAFETY") # Mortality, Mortality, Safety
+moved_to_new_file <- c("PC_01") # Process
+retired_in_2022   <- c("OP_33") # Process
+
+all_measure_info_df %>% filter(cc_date == "2021-07-01") %>%
+  filter(!is.na(sas_measure_id)) %>%
+  select(measure_group, measure_id) %>%
+  arrange(measure_group, measure_id)
+
+all_measure_info_df %>% filter(measure_id == "EDAC_30_PN")
+all_measure_info_df %>% filter(measure_id %in% new_in_2020)
+all_measure_info_df %>% filter(grepl("EDAC", measure_id)) %>% count(care_compare_filename)
+all_measure_info_df %>% filter(grepl("EDAC", measure_id), grepl("Returns", care_compare_filename))
+all_mort_readm_data_df$data[[30]]
+all_mort_readm_data_df %>%
+  select(-data) %>%
+  filter(grepl("Unplanned", filename))
+all_measure_info_df %>% filter(measure_id == "OP_10") %>% arrange(desc(cc_date))
+```
+
+
+
+
+```{r}
+sas_package_data_df$sas_output_df[[20]][, -(2:95)]
+sas_package_data_df$sas_output_df[[20]] %>% pull(n_groups) %>% table
+sas_package_data_df$sas_output_df[[15]] %>% pull(n_groups) %>% table
+sas_package_data_df$sas_output_df[[16]] %>% pull(n_groups) %>% table
+
+sas_package_data_df$sas_output_df[[20]] %>% pull(stars) %>% table
+sas_package_data_df$sas_output_df[[15]] %>% pull(stars) %>% table
+sas_package_data_df$sas_output_df[[16]] %>% pull(stars) %>% table
+
+na_counts <-
+  lapply(sas_package_data_df$sas_output_df[[20]],
+         function(x) sum(is.na(x)) / length(x)) %>% unlist
+na_counts[order(na_counts, decreasing = TRUE)]
+na_counts <- na_counts[order(names(na_counts))]
+missing_cols <- names(na_counts[na_counts == 1])
+missing_cols[!grepl("_DEN$", missing_cols)]
+```
+

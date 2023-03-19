@@ -1,0 +1,1249 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+All the zip files from the URL below were saved to the folder "zips". 
+<https://data.cms.gov/provider-data/archived-data/hospitals>
+
+The first code chunk gets a dataframe with one row for each unzipped folder. The `zip_date` column is used to identify the zip file.
+
+```{r}
+source("init.R")
+
+library(lubridate)
+Sys.setlocale("LC_TIME","English")
+library(scales) # for a function or two in the last plot
+
+dir.create(dirs$rdata, showWarnings = FALSE)
+
+parse_zip_dir <- function(zip_dir) {
+  zip_re <- "(\\d{2})_(\\d{4})$"
+  if (str_detect(zip_dir, zip_re)) {
+    mo_year <- str_match(zip_dir, zip_re)[1, 2:3]
+    tibble(
+        data_dir = zip_dir
+      ) %>%
+      mutate(
+        cc_year = as.integer(mo_year[2]),
+        cc_month = as.integer(mo_year[1]),
+        cc_date = as_date(sprintf("%s-%s-01", mo_year[2], mo_year[1]))
+      )
+  }
+}
+
+# dataframe with one row per zip file
+care_compare_df <-
+  bind_rows(lapply(list.dirs(dirs$zip), parse_zip_dir)) %>%
+  arrange(cc_date) %>%
+  mutate(cc_id = 1:n()) %>%
+  relocate(cc_id, .before = data_dir)
+
+```
+
+
+There are 6 categories of input file in this notebook:
+
+* `mort_readm`: Mortality and Readmission measures
+* `hai`: HAI measures
+* `hcahps`: HCAHPS measures
+* `timely`: Timely and Effective Care measures
+* `imaging`: Outpatient Imaging Efficiency measures
+* `ipfqr`: The measure IMM-2 is in IPFQR Quality Measures file
+
+The next 6 functions search a given unzipped folder for the relevant file(s). All functions return 1 file per unzipped folder, except `mort_readm` which may return 2.
+
+```{r}
+
+find_mort_readm_files <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, c("ynj2-r877.csv", "632h-zaca.csv"))
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, c("pdc_s3_hos_data_ynj2_r877.csv",
+                         "pdc_s3_hos_data_632h_zaca.csv"))
+  } else {
+    x <- list.files(data_dir)
+    death_readm_re <- "(hospital.*return|unplanned.*visit|and.*death|complications).*hosp.*"
+    x <- x[grepl(death_readm_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+
+find_maternal_files <- function(data_dir) {
+  x <- list.files(data_dir)
+  death_readm_re <- "maternal.*hosp.*"
+  x <- x[grepl(death_readm_re, x, ignore.case = TRUE)]
+  file.path(data_dir, x)
+}
+
+
+find_hai_files <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "77hc-ibv8.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_77hc_ibv8.csv")
+  } else {
+    x <- list.files(data_dir)
+    death_readm_re <- "^health.*assoc.*inf.*hosp.*"
+    x <- x[grepl(death_readm_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+
+find_hcahps_files <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "dgck-syfz.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_dgck_syfz.csv")
+  } else {
+    x <- list.files(data_dir)
+    hcahps_re <- "^hcahps.*hospital.*"
+    x <- x[grepl(hcahps_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+
+find_timely_files <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "yv7e-xc69.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_yv7e_xc69.csv")
+  } else {
+    x <- list.files(data_dir)
+    timely_re <- "^timely.*hospital.*"
+    x <- x[grepl(timely_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+
+find_imaging_files <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "wkfw-kthe.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_wkfw_kthe.csv")
+  } else {
+    x <- list.files(data_dir)
+    timely_re <- "imaging.*hospital.*"
+    x <- x[grepl(timely_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+
+find_ipfqr_files <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "q9vs-r7wp.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_q9vs_r7wp.csv")
+  } else {
+    x <- list.files(data_dir)
+    timely_re <- "ipfqr.*(hospital|facility).*"
+    x <- x[grepl(timely_re, x, ignore.case = TRUE)]
+    x <- x[!grepl("_FUH_", x)]
+    file.path(data_dir, x)
+  }
+}
+```
+
+
+
+These 6 functions read the 6 types of measure files. They all take a filename as an argument, and they also use variables in the global environment that were created in the previous code chunk.
+
+```{r}
+
+read_mort_readm_data <- function(filename) {
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  colnames(df)[1] <- "provider_id"
+  
+  df %>%
+    mutate(across(everything(), str_trim)) %>%
+    transmute(
+      provider_id,
+      measure_id = gsub("-", "_", toupper(`Measure ID`)),
+      measure_name = `Measure Name`,
+      score = ifelse(Score == "Not Available", NA_character_, Score),
+      score = as.numeric(score),
+      score = case_when(
+        grepl("^(EDAC|PSI|OP)_", measure_id) ~ score,
+        TRUE                                 ~ score / 100
+      ),
+      DEN =
+        ifelse(Denominator %in% c("Not Available", "Not Applicable"),
+               NA_character_, Denominator),
+      DEN = as.integer(DEN),
+      compared_to_national = `Compared to National`
+    )
+}
+
+
+read_maternal_data <- function(filename) {
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  colnames(df)[1] <- "provider_id"
+  
+  df %>%
+    mutate(across(everything(), str_trim)) %>%
+    transmute(
+      provider_id,
+      measure_id = gsub("-", "_", toupper(`Measure ID`)),
+      measure_name = `Measure Name`,
+      score = ifelse(Score == "Not Available", NA_character_, Score),
+      score = as.numeric(score),
+      score = case_when(
+        grepl("^(EDAC|PSI|OP)_", measure_id) ~ score,
+        TRUE                                 ~ score / 100
+      ),
+      DEN =
+        ifelse(Sample %in% c("Not Available", "Not Applicable"),
+               NA_character_, Sample),
+      DEN = as.integer(DEN),
+      footnote_id = Footnote
+    )
+}
+
+
+read_hai_corrected_data <- function(foldername, quarter_pattern = "") {
+  all_files <- list.files(foldername)
+  file_re <- sprintf("^corrected_hai_.*%s.*fac.*.csv", quarter_pattern)
+  corr_files <-
+    all_files[grepl(file_re, all_files, ignore.case = TRUE)]
+  hai_abbreviation_df <-
+    tibble(
+      abbreviation = c("cauti", "cdiff", "clabsi"),
+      measure_id   = c("HAI_2", "HAI_6", "HAI_1")
+    )
+  
+  read_data <- function(fn) {
+    df <- read.csv(fn, check.names = FALSE, colClasses = "character")
+    colnames(df) <- c("provider_id", "NUMERATOR", "DEN_PRED", "SIR",
+                      "CI_LOWER", "CI_UPPER", "compared_to_national", "DEN_VOL")
+    df
+  }
+  
+  tibble(filename = file.path(foldername, corr_files)) %>%
+    mutate(
+      abbreviation = map_chr(
+        filename, ~str_match(.x, "corrected_hai_([^_]+)_")[1,2]
+      )
+    ) %>%
+    left_join(hai_abbreviation_df, by = "abbreviation") %>%
+    mutate(
+      data = map(filename, read_data)
+    ) %>%
+    select(measure_id, data) %>%
+    unnest(data) %>%
+    mutate(across(everything(), str_trim)) %>%
+    mutate(
+      across(
+        all_of(c("NUMERATOR", "DEN_PRED", "SIR",
+                 "CI_LOWER", "CI_UPPER", "DEN_VOL")),
+        function(x) ifelse(grepl("^[-0-9.]+$", x), x, NA_character_)
+      )
+    ) %>%
+    mutate(
+      compared_to_national = ifelse(compared_to_national == "N/A",
+                                    NA_character_, compared_to_national),
+      across(all_of(c("NUMERATOR", "DEN_VOL")), as.integer),
+      across(all_of(c("SIR", "CI_LOWER", "CI_UPPER", "DEN_PRED")), as.numeric)
+    )
+}
+
+
+read_hai_data <- function(filename) {
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  colnames(df)[1] <- "provider_id"
+  
+  df <-
+    df %>%
+    mutate(across(everything(), str_trim)) %>%
+    filter(grepl("^HAI[-_][1-6][-_]", `Measure ID`)) %>%
+    transmute(
+      provider_id,
+      measure_id = gsub('-', '_', toupper(`Measure ID`)),
+      measure_stat = map_chr(measure_id, ~str_sub(.x, start = nchar("HAI_n_")+1)),
+      measure_id   = map_chr(measure_id, ~str_sub(.x, end   = nchar("HAI_n"))),
+      measure_stat = toupper(measure_stat),
+      measure_stat = case_when(
+        measure_stat %in% c("CI_LOWER", "CILOWER")     ~ "CI_LOWER",
+        measure_stat %in% c("CI_UPPER", "CIUPPER")     ~ "CI_UPPER",
+        measure_stat %in% c("DOPC_DAYS", "DOPC")       ~ "DEN_VOL",
+        measure_stat %in% c("ELIG_CASES", "ELIGCASES") ~ "DEN_PRED",
+        TRUE                                           ~ measure_stat
+      ),
+      score = ifelse(!grepl("^-?[0-9.]+$", Score), NA_character_, Score),
+      score = as.numeric(score),
+      compared_to_national = `Compared to National`
+    )
+  
+  df <-
+    df %>%
+    select(-compared_to_national) %>%
+    pivot_wider(names_from = measure_stat, values_from = score) %>%
+    left_join(
+      df %>% filter(replace_na(compared_to_national,'') != '') %>%
+        distinct(provider_id, measure_id, compared_to_national),
+      by = c("provider_id", "measure_id")
+    )
+  
+  if (grepl("_(11_2016|12_2016|04_2017|07_2017)$", dirname(filename))) {
+    foldername <- dirname(filename)
+    quarter_pattern <- ""
+    if (grepl("_12_2016$", foldername)) {
+      quarter_pattern <- "2015Q2-2016Q1"
+    }
+    if (grepl("_11_2016$", foldername)) {
+      foldername <- gsub("_11_2016", "_12_2016", foldername)
+      quarter_pattern <- "2015Q1-2015Q4"
+    }
+    update_df <- read_hai_corrected_data(foldername, quarter_pattern)
+    new_records_df <- df %>%
+      select(-SIR, -NUMERATOR, -DEN_PRED, -DEN_VOL,
+             -CI_UPPER, -compared_to_national) %>%
+      inner_join(update_df, by = c("provider_id", "measure_id"))
+    df <-
+      bind_rows(
+        df %>% anti_join(update_df, by = c("provider_id", "measure_id")),
+        new_records_df
+      )
+  }
+  
+  df %>%
+    select(provider_id, measure_id, SIR, NUMERATOR, DEN_PRED, DEN_VOL,
+           CI_LOWER, CI_UPPER, compared_to_national) %>%
+    mutate(NUMERATOR = as.integer(NUMERATOR), DEN_VOL = as.integer(DEN_VOL))
+}
+
+
+
+read_hcahps_data <- function(filename) {
+  
+  hcahps_measure_res <- c("CLEAN(?:_HSP)?", "HSP_RATING", "QUIET(?:_HSP)?",
+                          "RECMND", str_c("COMP_", c(1:7)))
+  hcahps_measure_res <- str_c("H_", hcahps_measure_res)
+  hcahps_filter_re <- str_c("^(", paste0(hcahps_measure_res, collapse = "|"), ")")
+  hcahps_answer_re <- str_c(hcahps_filter_re, "_(.*)")
+  
+  hcahps_all_answers <- c(
+    "LINEAR_SCORE", "STAR_RATING", "SN_P", "U_P", "A_P", "N_P", "Y_P",
+    "D_SD", "A", "SA", "0_6", "7_8", "9_10", "DN", "PY", "DY"
+  )
+  hcahps_top_box_answers <- c("A_P", "Y_P", "SA", "9_10", "DY")
+  
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  colnames(df)[1] <- "provider_id"
+  x <- which(grepl("(star rating$|linear mean)", colnames(df), ignore.case = TRUE))
+  if (length(x) == 2) {
+    colnames(df)[x] <- c("star_rating", "linear_mean_score")
+  } else {
+    df$star_rating <- NA_character_
+    df$linear_mean_score <- NA_character_
+  }
+  
+  df <-
+    df %>%
+    transmute(
+      provider_id,
+      full_measure_id = toupper(`HCAHPS Measure ID`),
+      answer_percent = `HCAHPS Answer Percent`,
+      linear_mean_score,
+      star_rating,
+      H_NUMB_COMP = `Number of Completed Surveys`,
+      H_RESP_RATE_P = `Survey Response Rate Percent`
+    ) %>%
+    mutate(across(everything(), str_trim)) %>%
+    filter(grepl(hcahps_filter_re, full_measure_id)) %>%
+    mutate(
+      measure_id = map_chr(full_measure_id, ~str_match(.x, hcahps_answer_re)[, 2]),
+      answer_id  = map_chr(full_measure_id, ~str_match(.x, hcahps_answer_re)[, 3]),
+      top_box_flag = (answer_id %in% hcahps_top_box_answers),
+      measure_id = ifelse(measure_id %in% c("H_CLEAN", "H_QUIET"),
+                          str_c(measure_id, "_HSP"), measure_id),
+      answer_percent = case_when(
+        answer_id == "LINEAR_SCORE" ~ linear_mean_score,
+        answer_id == "STAR_RATING"  ~ star_rating,
+        TRUE                        ~ answer_percent
+      ),
+      answer_percent = ifelse(grepl("[^0-9.-]", answer_percent),
+                              NA_character_, answer_percent),
+      answer_percent = as.numeric(answer_percent),
+      H_NUMB_COMP = ifelse(grepl("[^0-9.-]", H_NUMB_COMP),
+                           NA_character_, H_NUMB_COMP),
+      H_NUMB_COMP = as.integer(H_NUMB_COMP),
+      H_RESP_RATE_P = ifelse(grepl("[^0-9.-]", H_RESP_RATE_P),
+                             NA_character_, H_RESP_RATE_P),
+      H_RESP_RATE_P = as.integer(H_RESP_RATE_P)
+    ) %>%
+    select(
+      measure_id, answer_id, top_box_flag, provider_id,
+      answer_percent, H_NUMB_COMP, H_RESP_RATE_P
+    )
+  
+  df <-
+    df %>%
+    pivot_wider(id_cols = c(provider_id, measure_id, H_NUMB_COMP, H_RESP_RATE_P),
+                names_from = answer_id, values_from = answer_percent) %>%
+    left_join(
+      df %>%
+        filter(top_box_flag) %>%
+        transmute(
+          provider_id,
+          measure_id,
+          TOP_BOX = answer_percent
+        ),
+      by = c("provider_id", "measure_id")
+    )
+  
+  missing_answers <- setdiff(hcahps_all_answers, colnames(df))
+  if (length(missing_answers) > 0) {
+    df[, missing_answers] <- NA_real_
+  }
+  
+  df %>%
+    filter(
+      measure_id %in% c("H_CLEAN_HSP","H_HSP_RATING","H_QUIET_HSP","H_RECMND")
+    ) %>%
+    pivot_wider(id_cols = provider_id,
+                names_from = measure_id, values_from = STAR_RATING) %>%
+    transmute(
+      provider_id,
+      H_INDI = (H_CLEAN_HSP + H_QUIET_HSP) / 2,
+      H_GLOB = (H_HSP_RATING + H_RECMND) / 2
+    ) %>%
+    pivot_longer(-provider_id,
+                 names_to = "measure_id", values_to = "STAR_RATING") %>%
+    filter(!is.na(STAR_RATING)) %>%
+    bind_rows(df) %>%
+    select_at(c("provider_id", "measure_id", hcahps_all_answers,
+                "TOP_BOX", "H_NUMB_COMP", "H_RESP_RATE_P"))
+}
+
+
+read_timely_data <- function(filename) {
+  # Get the Care Compare date
+  cc_mo_match <- str_match(filename, "[_](\\d{2})[_](20\\d{2})[/\\\\]")[1, ]
+  cc_date <- lubridate::ymd(sprintf("%s-%s-01", cc_mo_match[3], cc_mo_match[2]))
+  
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  
+  colnames(df)[1:2] <- c("provider_id", "hospital_name")
+
+  df %>%
+    transmute(
+      provider_id,
+      hospital_name,
+      condition = Condition,
+      measure_id = toupper(`Measure ID`),
+      measure_id = case_when(
+        (measure_id == "IMM_3_OP_27_FAC_ADHPCT") & (cc_date >= "2018-01-01")
+              ~ "IMM_3_OP_27",
+        TRUE  ~ measure_id
+      ),
+      measure_name = `Measure Name`,
+      score = Score,
+      DEN = Sample
+    ) %>%
+    mutate(across(everything(), str_trim)) %>%
+    mutate(
+      score  = ifelse(grepl("[^0-9.-]", score), NA_character_, score),
+      DEN    = ifelse(grepl("[^0-9.-]", DEN),   NA_character_, DEN),
+      score  = as.numeric(score),
+      score  = case_when(
+        toupper(measure_id) %in% c("ED_2B", "OP_18B", "OP_3B") ~ score,
+        TRUE                                                   ~ score / 100
+      ),
+      DEN = as.integer(DEN)
+    )
+}
+
+
+read_imaging_data <- function(filename) {
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  colnames(df)[1:2] <- c("provider_id", "hospital_name")
+  df %>%
+    mutate(across(everything(), str_trim)) %>%
+    transmute(
+      provider_id,
+      hospital_name,
+      measure_id = gsub("-", "_", `Measure ID`),
+      measure_id = toupper(measure_id),
+      measure_name = `Measure Name`,
+      score  = ifelse(grepl("[^0-9.-]", Score), NA_character_, Score),
+      score  = as.numeric(score) / 100
+    )
+}
+
+
+
+ipfqr_get_first_word <- function(x) {
+  y <- toupper(str_trim(str_split(x, "[_ ]")[[1]][1]))
+}
+ipfqr_get_all_but_first_word <- function(x) {
+  y <- str_trim(str_split(x, "[_ ]")[[1]])
+  if (length(y) > 1)
+    str_trim(paste(y[2:length(y)], collapse = " "))
+  else
+    NA_character_
+}
+ipfqr_split_slash_measure_id <- function(x) {
+  if (grepl("/", x)) {
+    m_vec <- str_split(x, "/")[[1]]
+    m_pre <- str_split(m_vec, "-")[[1]][1]
+    m_vec[2] <- str_c(m_pre, m_vec[2])
+    m_vec
+  } else {
+    x
+  }
+}
+
+read_ipfqr_data <- function(filename) {
+  df <- read.csv(filename, check.names = FALSE, colClasses = "character")
+  colnames(df)[1:2] <- c("provider_id", "hospital_name")
+  
+  # unpivot and then pivot
+  df <-
+    df %>%
+    pivot_longer(cols = -c(provider_id, hospital_name),
+                 names_to = "col_name", values_to = "value") %>%
+    transmute(
+      provider_id,
+      measure_id = map_chr(col_name, ipfqr_get_first_word),
+      measure_id = map(measure_id, ipfqr_split_slash_measure_id),
+      measure_stat = map_chr(col_name, ipfqr_get_all_but_first_word),
+      value
+    ) %>%
+    unnest(measure_id) %>%
+    mutate(
+      measure_id = gsub("-", "_", measure_id),
+      measure_stat = case_when(
+        measure_stat == "%"                     ~ "percent",
+        measure_stat == "Overall % of Total"    ~ "percent",
+        measure_stat == "Rate"                  ~ "rate",
+        measure_stat == "Overall Rate Per 1000" ~ "rate",
+        measure_stat == "Overall Num"           ~ "numerator",
+        measure_stat == "Numerator"             ~ "numerator",
+        measure_stat == "Overall Den"           ~ "DEN",
+        measure_stat == "Denominator"           ~ "DEN",
+        measure_stat == "Response"              ~ "response",
+        measure_stat == "Assessed Response"     ~ "assessed_response",
+        measure_stat == "Use Response"          ~ "use_response",
+        measure_stat == "Category"              ~ "category",
+        measure_stat == "Lower Estimate"        ~ "rate_low_estimate",
+        measure_stat == "Higher Estimate"       ~ "rate_high_estimate",
+        TRUE                                    ~ measure_stat
+      )
+    ) %>%
+    filter(
+      !(tolower(measure_id) %in% c(
+          "address", "city", "state", "zip", "county", "start", "end"
+      ))
+    ) %>%
+    filter(
+      measure_stat %in% c(
+        "percent", "rate", "numerator", "DEN", "rate_low_estimate",
+        "rate_high_estimate", "response", "assessed_response", "use_response"
+      )
+    ) %>%
+    filter(value != "Not Available") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c(provider_id, measure_id),
+                names_from = measure_stat, values_from = value)
+  
+  to_numeric_cols <- c("rate", "percent", "numerator", "DEN",
+                       "rate_low_estimate", "rate_high_estimate")
+  for (col_name in to_numeric_cols) {
+    if (!(col_name %in% colnames(df)))
+      df[[col_name]] <- NA_character_
+  }
+  
+  df <-
+    df %>%
+    mutate(
+      rate        = as.numeric(rate),
+      percent_den = ifelse(grepl("[%]", percent), 100, 1),
+      percent     = gsub("[%]", "", percent),
+      percent     = as.numeric(percent) / percent_den,
+      numerator   = as.numeric(numerator),
+      DEN         = as.numeric(DEN),
+      rate_low_estimate  = as.numeric(rate_low_estimate),
+      rate_high_estimate = as.numeric(rate_high_estimate)
+    ) %>%
+    select(-percent_den)
+  
+  divide_by_100 <-
+    df %>%
+    filter(!is.na(percent)) %>%
+    group_by(measure_id) %>%
+    summarize(max_percent = max(percent), .groups = "drop") %>%
+    filter(max_percent > 1) %>%
+    pull(measure_id)
+  
+  df %>%
+    mutate(
+      percent = percent / ifelse(measure_id %in% divide_by_100, 100, 1)
+    ) %>%
+    filter(!(measure_id %in% c("IMM_2")))
+}
+```
+
+
+This code chunk actually the 12 functions above to find the measure files and read/process their data into dataframes saved in list columns named `data`.
+
+```{r}
+all_mort_readm_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_mort_readm_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_mort_readm_data))
+
+all_maternal_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_maternal_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_maternal_data))
+
+all_hai_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_hai_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_hai_data))
+
+all_hcahps_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_hcahps_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_hcahps_data))
+
+all_timely_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_timely_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_timely_data))
+
+all_imaging_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_imaging_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_imaging_data))
+
+all_ipfqr_data_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_ipfqr_files)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_ipfqr_data))
+
+```
+
+
+
+
+
+
+```{r}
+update_col_name_if_exists <- function(df, name_from, name_to) {
+  name_index <- grep(name_from, colnames(df))
+  if (length(name_index) >= 1) {
+    colnames(df)[name_index[1]] <- name_to
+  } else {
+    df[[name_to]] <- NA_character_
+  }
+  df
+}
+
+update_col_names <- function(df, name_from_to_list) {
+  for (n in names(name_from_to_list)) {
+    df <- update_col_name_if_exists(df, n, name_from_to_list[[n]])
+  }
+  df
+}
+
+
+
+read_va_hospital_file <- function(zip_dir, zip_date) {
+  if (zip_date == "2020-07-01") {
+    fname <- "pdc_s3_hos_data_uyx4_5s7f.csv"
+  } else if (zip_date == "2020-10-01") {
+    fname <- "uyx4-5s7f.csv"
+  } else {
+    fname <- list.files(zip_dir, pattern = "Vet.*Health.*Admin.*Prov.*.csv")
+  }
+  if (length(fname) > 0) {
+    fname <- file.path(zip_dir, fname)
+    if (file.exists(fname)) {
+      df <-
+        read.csv(fname, colClasses = "character", check.names = FALSE) %>%
+        mutate(across(everything(), str_trim))
+      colnames(df)[1:2] <- c("provider_id", "hospital_name")
+      df %>%
+        transmute(
+          provider_id,
+          hospital_name,
+          address            = Address,
+          city               = City,
+          state              = State,
+          zip                = `ZIP Code`,
+          county             = `County Name`,
+          phone              = `Phone Number`,
+          hospital_type      = `Hospital Type`,
+          hospital_ownership = `Hospital Ownership`,
+          emergency_services = `Emergency Services`,
+          # All ratings are "Not Available" for VA hospitals
+          overall_rating     = NA_integer_ #`Hospital overall rating`
+        )
+    }
+  }
+}
+
+
+read_general_info_file <- function(zip_dir, zip_date) {
+  if (zip_date == "2020-07-01") {
+    fname <- file.path(zip_dir, "pdc_s3_hos_data_xubh_q36u.csv")
+  } else if (zip_date == "2020-10-01") {
+    fname <- file.path(zip_dir, "xubh-q36u.csv")
+  } else {
+    fname <- list.files(zip_dir, pattern = "Hospital.*General.*Information.csv")
+    fname <- file.path(zip_dir, fname)
+  }
+  df <-
+    read.csv(fname, colClasses = "character", check.names = FALSE) %>%
+    mutate(across(everything(), str_trim))
+  
+  colnames(df)[1:2] <- c("provider_id", "hospital_name")
+  name_from_to_list <- list(
+    "Hospital overall rating"           = "overall_rating",
+    "Meets criteria for meaningful use of EHRs"             = "ehr_meaningful_use",
+    "Meets criteria for promoting interoperability of EHRs" = "ehr_interoperability",
+    "MORT Group Measure Count"          = "mort_group_measure_count",
+    "Count of Facility MORT Measures"   = "mort_hospital_measure_count",
+    "Safety Group Measure Count"        = "safety_group_measure_count",
+    "Count of Facility Safety Measures" = "safety_hospital_measure_count",
+    "READM Group Measure Count"         = "readm_group_measure_count",
+    "Count of Facility READM Measures"  = "readm_hospital_measure_count",
+    "Pt Exp Group Measure Count"        = "ptexp_group_measure_count",
+    "Count of Facility Pt Exp Measures" = "ptexp_hospital_measure_count",
+    "TE Group Measure Count"            = "timeeff_group_measure_count",
+    "Count of Facility TE Measures"     = "timeeff_hospital_measure_count"
+  )
+  df <- update_col_names(df, name_from_to_list)
+  
+  df <-
+    df %>%
+    transmute(
+      provider_id,
+      hospital_name,
+      address = Address,
+      city = City,
+      state = State,
+      zip = `ZIP Code`,
+      county = `County Name`,
+      phone = `Phone Number`,
+      hospital_type = `Hospital Type`,
+      hospital_ownership = `Hospital Ownership`,
+      emergency_services = `Emergency Services`,
+      overall_rating,
+      ehr_meaningful_use,
+      ehr_interoperability,
+      mort_group_measure_count,     mort_hospital_measure_count,
+      safety_group_measure_count,   safety_hospital_measure_count,
+      readm_group_measure_count,    readm_hospital_measure_count,
+      ptexp_group_measure_count,    ptexp_hospital_measure_count,
+      timeeff_group_measure_count,  timeeff_hospital_measure_count
+    )
+  
+  to_int_cols <- unname(unlist(name_from_to_list)[c(1, 4:13)])
+  just_digits <- function(x) ifelse(grepl("^[0-9]+$", x), x, NA_character_)
+  at_least_3  <- function(x) ifelse(replace_na(x, 0) >= 3, 1L, 0L)
+  
+  df[, to_int_cols] <- lapply(df[, to_int_cols], just_digits)
+  df[, to_int_cols] <- lapply(df[, to_int_cols], as.integer)
+  
+  df %>%
+    mutate(
+      mort_flag    = at_least_3(mort_hospital_measure_count),
+      safety_flag  = at_least_3(safety_hospital_measure_count),
+      readm_flag   = at_least_3(readm_hospital_measure_count),
+      ptexp_flag   = at_least_3(ptexp_hospital_measure_count),
+      timeeff_flag = at_least_3(timeeff_hospital_measure_count),
+      flags = mort_flag + safety_flag + readm_flag + ptexp_flag + timeeff_flag,
+      mort_safety_flag = ifelse((mort_flag == 1) | (safety_flag == 1), 1L, 0L),
+      measure_groups = case_when(
+        mort_safety_flag == 0 ~ NA_integer_,
+        flags < 3             ~ NA_integer_,
+        TRUE                  ~ flags
+      )
+    ) %>%
+    select(-mort_flag, -safety_flag, -readm_flag, -ptexp_flag, -timeeff_flag,
+           -flags, -mort_safety_flag)
+}
+
+get_date_conversion_func <- function(str_vec) {
+  if (all(grepl("^\\d{4}-\\d{1,2}-\\d{1,2}", str_vec))) {
+    lubridate::ymd
+  } else if (all(grepl("^\\d{1,2}/\\d{1,2}/\\d{2,4}", str_vec))) {
+    lubridate::mdy
+  } else {
+    stop("Couldn't find a date pattern")
+  }
+}
+
+read_measure_dates_file <- function(data_dir, cc_date) {
+  if (cc_date == "2020-07-01") {
+    fname <- "pdc_s3_hos_data_4j6d_yzce.csv"
+  } else if (cc_date == "2020-10-01") {
+    fname <- "4j6d-yzce.csv"
+  } else {
+    fname <- list.files(data_dir, pattern = "Measure.*Date.*.csv")
+  }
+  if (length(fname) > 1) {
+    fname <- fname[grepl("^Measure", fname)]
+  }
+  if (length(fname) == 1) {
+    fname <- file.path(data_dir, fname)
+    if (file.exists(fname)) {
+      df <-
+        read.csv(fname, colClasses = "character", check.names = FALSE) %>%
+        mutate(across(everything(), str_trim))
+      date_cols <- grep("Measure (Start|End) Date", colnames(df))
+      if (length(date_cols) == 2)
+        colnames(df)[date_cols] <- c("Start Date", "End Date")
+      date_func <- get_date_conversion_func(df$`Start Date`)
+      
+      df <-
+        df %>%
+        transmute(
+          measure_id    = toupper(`Measure ID`),
+          measure_name  = `Measure Name`,
+          start_date    = map_chr(`Start Date`, ~str_split(.x, " ")[[1]][1]),
+          end_date      = map_chr(`End Date`, ~str_split(.x, " ")[[1]][1]),
+          start_date    = date_func(start_date),
+          end_date      = date_func(end_date),
+          start_quarter = `Measure Start Quarter`,
+          end_quarter   = `Measure End Quarter`
+        )
+      if (cc_date < "2021-07-01") {
+        df <-
+          df %>%
+          mutate(
+            measure_id = case_when(
+              measure_id == "PSI_4"  ~ "PSI_4_SURG_COMP",
+              measure_id == "PSI_90" ~ "PSI_90_SAFETY",
+              TRUE                   ~ measure_id
+            )
+          )
+      } else {
+        df <-
+          df %>%
+          mutate(
+            measure_id = case_when(
+              measure_id == "PSI_4" ~ "PSI_04",
+              TRUE                  ~ measure_id
+            )
+          )
+      }
+      df
+    }
+  } else {
+    print(fname)
+  }
+}
+
+
+
+get_all_pulled_measures <- function(all_data_df) {
+  all_data_df %>%
+    select(cc_date, filename, data) %>%
+    mutate(filename = basename(filename)) %>%
+    unnest(data) %>%
+    distinct(cc_date, filename, measure_id)
+}
+
+all_pulled_measures_df <-
+  lapply(
+    list(all_mort_readm_data_df, all_hai_data_df, all_hcahps_data_df,
+         all_timely_data_df, all_imaging_data_df, all_ipfqr_data_df),
+    get_all_pulled_measures
+  ) %>%
+  bind_rows()
+
+
+update_hcahps_measure_ids <- function(measure_id, report_date) {
+  if (measure_id == "HCAHPS") {
+    all_pulled_measures_df %>%
+      filter(cc_date == report_date, grepl("^H[_]", measure_id)) %>%
+      pull(measure_id) %>%
+      unique
+  } else {
+    measure_id
+  }
+}
+
+
+all_va_hospital_df <-
+  care_compare_df %>%
+  transmute(
+    cc_id,
+    cc_date,
+    data = map2(data_dir, cc_date, read_va_hospital_file),
+    va_df_null = map_int(data, ~is.null(.x))
+  ) %>%
+  filter(!va_df_null) %>%
+  select(-va_df_null) %>%
+  unnest(data)
+
+all_hospital_info_df <-
+  care_compare_df %>%
+  transmute(
+    cc_id,
+    cc_date,
+    data = map2(data_dir, cc_date, read_general_info_file)
+  ) %>%
+  unnest(data) %>%
+  left_join(
+    all_va_hospital_df %>%
+      distinct(provider_id) %>% mutate(is_va_hospital = TRUE),
+    by = c("provider_id")
+  ) %>%
+  mutate(is_va_hospital = replace_na(is_va_hospital, FALSE)) %>%
+  arrange(cc_date, provider_id)
+
+all_hospital_info_df <-
+  bind_rows(
+    all_hospital_info_df,
+    all_va_hospital_df %>% mutate(is_va_hospital = TRUE)
+  )
+
+all_measure_dates_df <-
+  care_compare_df %>%
+  transmute(
+    cc_id,
+    cc_date,
+    data = map2(data_dir, cc_date, read_measure_dates_file),
+    measure_dates_df_null = map_int(data, ~is.null(.x))
+  ) %>%
+  filter(!measure_dates_df_null) %>%
+  select(-measure_dates_df_null) %>%
+  unnest(data) %>%
+  mutate(measure_id = map2(measure_id, cc_date, update_hcahps_measure_ids)) %>%
+  unnest(measure_id)
+```
+
+
+This next chunk assumes that you've downloaded the SAS program input files from the URL below, and put them in a folder named "sas"
+
+<https://qualitynet.cms.gov/inpatient/public-reporting/overall-ratings/sas>
+
+```{r}
+all_sas_input_df <-
+  tribble(
+    ~sas_file,                   ~first_cc_date,
+    "all_data_2017dec.sas7bdat", "2018-01-01",
+    "all_data_2019jan.sas7bdat", "2019-03-01",
+    "all_data_2020jan.sas7bdat", "2019-10-01",
+    "all_data_2021apr.sas7bdat", "2020-10-01",
+    "all_data_2022jul.sas7bdat", "2021-07-01"
+  ) %>%
+  mutate(
+    sas_file_id = 1:n(),
+    data = map(
+      sas_file,
+      function(sas_file) haven::read_sas(file.path(dirs$sas, sas_file))
+    )
+  )
+
+all_sas_input_df <-
+  all_sas_input_df %>%
+  left_join(
+    all_sas_input_df %>%
+      transmute(sas_file_id = sas_file_id - 1, next_cc_date = first_cc_date),
+    by = "sas_file_id"
+  ) %>%
+  mutate(
+    next_cc_date  = replace_na(next_cc_date, as.character(Sys.Date())),
+    next_cc_date  = lubridate::ymd(next_cc_date),
+    first_cc_date = lubridate::ymd(first_cc_date),
+    dummy = 1
+  ) %>%
+  inner_join(
+    all_hospital_info_df %>% distinct(cc_date) %>% mutate(dummy = 1),
+    by = "dummy"
+  ) %>%
+  filter(first_cc_date <= cc_date, cc_date < next_cc_date) %>%
+  select(cc_date, sas_file_id, sas_file, data, first_cc_date, next_cc_date)
+
+sas_input_provider_id_df <-
+  all_sas_input_df %>%
+  select(cc_date, data) %>%
+  unnest(data) %>%
+  select(cc_date, provider_id = PROVIDER_ID) %>%
+  distinct()
+
+
+all_hospital_info_df <-
+  all_hospital_info_df %>%
+  left_join(
+    sas_input_provider_id_df %>% mutate(in_sas_input_file = TRUE),
+    by = c("cc_date", "provider_id")
+  ) %>%
+  mutate(in_sas_input_file = replace_na(in_sas_input_file, FALSE))
+```
+
+
+
+
+```{r}
+sas_history_xlsx <- file.path(dirs$sas, "Measure History in SAS.xlsx")
+sas_measure_history_sheet_names <- openxlsx::getSheetNames(sas_history_xlsx)
+sas_measure_history_df <-
+  setNames(
+    lapply(
+      sas_measure_history_sheet_names,
+      function(s)
+        openxlsx::read.xlsx(sas_history_xlsx, s) %>%
+        mutate(first_cc_date = lubridate::ymd(str_c(s, '-01')))
+    ),
+    sas_measure_history_sheet_names
+  ) %>%
+  bind_rows() %>%
+  left_join(
+    all_sas_input_df %>%
+      distinct(cc_date, first_cc_date, next_cc_date),
+    by = c("first_cc_date")
+  ) %>%
+  arrange(cc_date, measure_id)
+
+
+all_measure_info_df <-
+  all_measure_dates_df %>%
+  left_join(
+    sas_measure_history_df %>%
+      select(cc_date, measure_id, measure_group, higher_is_better,
+             sas_measure_stat, sas_measure_id, sas_date = first_cc_date),
+    by = c("cc_date", "measure_id")
+  ) %>%
+  left_join(
+    all_pulled_measures_df %>% rename(care_compare_filename = filename),
+    by = c("cc_date", "measure_id")
+  ) %>%
+  arrange(cc_date, measure_id)
+
+
+all_measure_info_df
+```
+
+
+```{r}
+measure_id_history_df <-
+  openxlsx::read.xlsx("Measure ID History.xlsx", detectDates = TRUE)
+
+measure_id_history_df
+```
+
+
+```{r}
+load(file.path(dirs$rdata, "all_national_rates_df.RData"))
+all_national_rates_df %>% arrange(desc(cc_date))
+```
+
+
+
+Corrections for delayed releases of certain measures
+
+* Readmission measures c("OP_32", "OP_35_ADM", "OP_35_ED")
+  * 2022-07 data released 2022-10
+
+* Mort/Mort/Safety c("MORT_30_PN", "PSI_4_SURG_COMP", "PSI_90_SAFETY")
+  * 2022-07 data released 2023-01
+
+
+```{r}
+
+update_measures <- function(all_data_df, file_pattern, measures_vec, from_date, to_date) {
+  update_df <-
+    all_data_df %>%
+    filter(cc_date == from_date) %>%
+    select(data) %>% unnest(data) %>%
+    filter(measure_id %in% measures_vec) %>%
+    select(
+      provider_id, measure_id,
+      new_score = score, new_DEN = DEN, new_ctn = compared_to_national
+    ) %>%
+    filter(!is.na(new_score))
+  
+  to_replace_filename <-
+    all_data_df %>%
+    filter(cc_date == to_date, grepl(file_pattern, filename)) %>%
+    pull(filename)
+  to_replace_index <-
+    which(all_data_df$filename == to_replace_filename)
+  to_replace_df <- all_data_df$data[[to_replace_index]]
+  
+  fixed_df <-
+    to_replace_df %>%
+    left_join(update_df, by = c("provider_id", "measure_id")) %>%
+    mutate(
+      score = ifelse(!is.na(new_score), new_score, score),
+      DEN = ifelse(!is.na(new_DEN), new_DEN, DEN),
+      compared_to_national = ifelse(!is.na(new_ctn), new_ctn, compared_to_national)
+    ) %>%
+    select(-new_score, -new_DEN, -new_ctn)
+  
+  list(df=fixed_df, index=to_replace_index)
+}
+
+update_measures2 <- function(all_data_df, file_pattern, measures_vec, from_date, to_date) {
+  update_df <-
+    all_data_df %>%
+    filter(cc_date == from_date) %>%
+    select(data) %>% unnest(data) %>%
+    filter(measure_id %in% measures_vec) %>%
+    select(provider_id, measure_id, new_score = score) %>%
+    filter(!is.na(new_score))
+  
+  to_replace_filename <-
+    all_data_df %>%
+    filter(cc_date == to_date, grepl(file_pattern, filename)) %>%
+    pull(filename)
+  to_replace_index <-
+    which(all_data_df$filename == to_replace_filename)
+  to_replace_df <- all_data_df$data[[to_replace_index]]
+  
+  fixed_df <-
+    to_replace_df %>%
+    left_join(update_df, by = c("provider_id", "measure_id")) %>%
+    mutate(score = ifelse(!is.na(new_score), new_score, score)) %>%
+    select(-new_score)
+  
+  list(df=fixed_df, index=to_replace_index)
+}
+
+
+# These all NULL because the score reporting was delayed 1 quarter
+replacement <- update_measures(
+  all_mort_readm_data_df, "Unplanned", c("OP_32", "OP_35_ADM", "OP_35_ED"),
+  from_date = "2022-10-01", to_date = "2022-07-01"
+)
+all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
+
+# These all NULL because the score reporting was delayed 2 quarters
+replacement <- update_measures(
+  all_mort_readm_data_df, "Complications", c("MORT_30_PN", "PSI_04", "PSI_90"),
+  from_date = "2023-01-01", to_date = "2022-07-01"
+)
+all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
+replacement <- update_measures(
+  all_mort_readm_data_df, "Complications", c("MORT_30_PN", "PSI_04", "PSI_90"),
+  from_date = "2023-01-01", to_date = "2022-10-01"
+)
+all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
+replacement <- update_measures(
+  all_mort_readm_data_df, "Complications", c("PSI_90"),
+  from_date = "2021-10-01", to_date = "2021-07-01"
+)
+all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
+replacement <- update_measures(
+  all_mort_readm_data_df, "Unplanned", c("READM_30_PN"),
+  from_date = "2023-01-01", to_date = "2022-07-01"
+)
+all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
+replacement <- update_measures(
+  all_mort_readm_data_df, "Unplanned", c("READM_30_PN"),
+  from_date = "2023-01-01", to_date = "2022-10-01"
+)
+all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
+
+
+
+replacement1 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_10"),
+  from_date = "2022-07-01", to_date = "2022-04-01"
+)
+replacement2 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_10"),
+  from_date = "2022-07-01", to_date = "2022-01-01"
+)
+replacement3 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_10"),
+  from_date = "2022-07-01", to_date = "2021-10-01"
+)
+replacement4 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_10"),
+  from_date = "2022-07-01", to_date = "2021-07-01"
+)
+replacement5 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_10"),
+  from_date = "2022-10-01", to_date = "2022-07-01"
+)
+all_imaging_data_df$data[[replacement1$index]] <- replacement1$df
+all_imaging_data_df$data[[replacement2$index]] <- replacement2$df
+all_imaging_data_df$data[[replacement3$index]] <- replacement3$df
+all_imaging_data_df$data[[replacement4$index]] <- replacement4$df
+all_imaging_data_df$data[[replacement5$index]] <- replacement5$df
+
+
+# The OP_10 dates in the measure table need to get updated too
+
+all_measure_info_df <-
+  all_measure_info_df %>%
+  mutate(
+    update_flag = ((measure_id == "OP_10") & (cc_date == "2022-07-01")),
+    start_date = case_when(
+      update_flag ~ lubridate::ymd("2020-07-01"),
+      TRUE ~ start_date
+    ),
+    end_date = case_when(
+      update_flag ~ lubridate::ymd("2021-06-30"),
+      TRUE ~ end_date
+    ),
+    start_quarter = ifelse(update_flag, "3Q2020", start_quarter),
+    end_quarter   = ifelse(update_flag, "2Q2021", end_quarter)
+  ) %>%
+  select(-update_flag)
+
+# TODO: Update national rates for OP_10
+
+```
+
+
+
+
+```{r}
+all_data_list <- list(
+  "all_mort_readm_data_df" = all_mort_readm_data_df,
+  "all_maternal_data_df"   = all_maternal_data_df,
+  "all_hai_data_df"        = all_hai_data_df,
+  "all_hcahps_data_df"     = all_hcahps_data_df,
+  "all_timely_data_df"     = all_timely_data_df,
+  "all_imaging_data_df"    = all_imaging_data_df,
+  "all_ipfqr_data_df"      = all_ipfqr_data_df,
+  "all_hospital_info_df"   = all_hospital_info_df,
+  "all_measure_info_df"    = all_measure_info_df,
+  "all_va_hospital_df"     = all_va_hospital_df,
+  "all_sas_input_df"       = all_sas_input_df,
+  "all_national_rates_df"  = all_national_rates_df,
+  "measure_id_history_df"  = measure_id_history_df
+)
+
+save(all_data_list, file = file.path(dirs$rdata, "all_data_list.RData"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,721 @@
+---
+title: "R Notebook"
+output:
+html_notebook: default
+---
+
+
+
+```{r}
+source("init.R")
+
+library(lubridate)
+Sys.setlocale("LC_TIME","English")
+library(scales) # for a function or two in the last plot
+
+dir.create(dirs$rdata, showWarnings = FALSE)
+
+parse_zip_dir <- function(zip_dir) {
+  zip_re <- "(\\d{2})_(\\d{4})$"
+  if (str_detect(zip_dir, zip_re)) {
+    mo_year <- str_match(zip_dir, zip_re)[1, 2:3]
+    tibble(
+        data_dir = zip_dir
+      ) %>%
+      mutate(
+        cc_year = as.integer(mo_year[2]),
+        cc_month = as.integer(mo_year[1]),
+        cc_date = as_date(sprintf("%s-%s-01", mo_year[2], mo_year[1]))
+      )
+  }
+}
+
+# dataframe with one row per zip file
+care_compare_df <-
+  bind_rows(lapply(list.dirs(dirs$zip), parse_zip_dir)) %>%
+  arrange(cc_date) %>%
+  mutate(cc_id = 1:n()) %>%
+  relocate(cc_id, .before = data_dir)
+```
+
+
+
+
+```{r}
+
+find_mort_readm_files_natl <- function(data_dir, state = FALSE) {
+  if (grepl("_10_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, c("bs2r-24vh.csv", "4gkm-5ypv.csv"))
+    } else {
+      file.path(data_dir, c("qqw3-t4ie.csv", "cvcs-xecj.csv"))
+    }
+  } else if (grepl("_07_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, c("pdc_s3_hos_data_bs2r_24vh.csv",
+                           "pdc_s3_hos_data_4gkm_5ypv.csv"))
+    } else {
+      file.path(data_dir, c("pdc_s3_hos_data_qqw3_t4ie.csv",
+                           "pdc_s3_hos_data_cvcs_xecj.csv"))
+    }
+  } else {
+    x <- list.files(data_dir)
+    if (state) {
+      death_readm_re <- "(hospital.*return|unplanned.*visit|and.*death|complications).*state.*"
+    } else {
+      death_readm_re <- "(hospital.*return|unplanned.*visit|and.*death|complications).*national.*"
+    }
+    x <- x[grepl(death_readm_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+find_hai_files_natl <- function(data_dir, state = FALSE) {
+  if (grepl("_10_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, "k2ze-bqvw.csv")
+    } else {
+      file.path(data_dir, "yd3s-jyhd.csv")
+    }
+  } else if (grepl("_07_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, "pdc_s3_hos_data_k2ze_bqvw.csv")
+    } else {
+      file.path(data_dir, "pdc_s3_hos_data_yd3s_jyhd.csv")
+    }
+  } else {
+    x <- list.files(data_dir)
+    if (state) {
+      death_readm_re <- "^health.*assoc.*inf.*state.*"
+    } else {
+      death_readm_re <- "^health.*assoc.*inf.*national.*"
+    }
+    x <- x[grepl(death_readm_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+find_hcahps_files_natl <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "99ue-w85f.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_99ue_w85f.csv")
+  } else {
+    x <- list.files(data_dir)
+    hcahps_re <- "^hcahps.*national.*"
+    x <- x[grepl(hcahps_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+find_timely_files_natl <- function(data_dir, state = FALSE) {
+  if (grepl("_10_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, "apyc-v239.csv")
+    } else {
+      file.path(data_dir, "isrn-hqyy.csv")
+    }
+  } else if (grepl("_07_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, "pdc_s3_hos_data_apyc_v239.csv")
+    } else {
+      file.path(data_dir, "pdc_s3_hos_data_isrn_hqyy.csv")
+    }
+  } else {
+    x <- list.files(data_dir)
+    if (state) {
+      timely_re <- "^timely.*state.*"
+    } else {
+      timely_re <- "^timely.*national.*"
+    }
+    x <- x[grepl(timely_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+find_imaging_files_natl <- function(data_dir, state = FALSE) {
+  if (grepl("_10_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, "if5v-4x48.csv")
+    } else {
+      file.path(data_dir, "di9i-zzrc.csv")
+    }
+  } else if (grepl("_07_2020$", data_dir)) {
+    if (state) {
+      file.path(data_dir, "pdc_s3_hos_data_if5v_4x48.csv")
+    } else {
+      file.path(data_dir, "pdc_s3_hos_data_di9i_zzrc.csv")
+    }
+  } else {
+    x <- list.files(data_dir)
+    if (state) {
+      timely_re <- "imaging.*state.*"
+    } else {
+      timely_re <- "imaging.*national.*"
+    }
+    x <- x[grepl(timely_re, x, ignore.case = TRUE)]
+    file.path(data_dir, x)
+  }
+}
+
+find_ipfqr_files_natl <- function(data_dir) {
+  if (grepl("_10_2020$", data_dir)) {
+    file.path(data_dir, "s5xg-sys6.csv")
+  } else if (grepl("_07_2020$", data_dir)) {
+    file.path(data_dir, "pdc_s3_hos_data_s5xg_sys6.csv")
+  } else {
+    x <- list.files(data_dir)
+    timely_re <- "ipfqr.*national.*"
+    x <- x[grepl(timely_re, x, ignore.case = TRUE)]
+    x <- x[!grepl("_FUH_", x)]
+    file.path(data_dir, x)
+  }
+}
+```
+
+
+
+```{r}
+natl_name_map <- list(
+  "measure id"="measure_id", "national rate"="national_rate",
+  "start date"="start_date", "end date"="end_date"
+)
+remap_col_names <- function(df, name_map) {
+  for (pattern in names(name_map)) {
+    i <- which(grepl(pattern, colnames(df), ignore.case = TRUE))
+    if (length(i) == 0) {
+      stop(str_c("Pattern not found: ", pattern))
+    } else if (length(i) > 1) {
+      stop(str_c("Multiple columns match pattern: ", pattern))
+    }
+    colnames(df)[i] <- name_map[[pattern]]
+  }
+  df
+}
+
+read_mort_readm_natl_data <- function(filename, state = FALSE) {
+  natl_mort_readm_map <-
+    list(
+      "measure id"="measure_id", "national rate"="score",
+      "start date"="start_date", "end date"="end_date"
+    )
+  if (state) {
+    natl_mort_readm_map <-
+      list(
+        "measure id"="measure_id", "national rate"="score",
+        "start date"="start_date", "end date"="end_date", "state"="state"
+      )
+    final_cols <-
+      c("state", "measure_id", "score", "note", "start_date", "end_date")
+  } else {
+    natl_mort_readm_map <-
+      list(
+        "measure id"="measure_id", "national rate"="score",
+        "start date"="start_date", "end date"="end_date"
+      )
+    final_cols <- c("measure_id", "score", "note", "start_date", "end_date")
+  }
+
+  read.csv(filename, check.names = FALSE, colClasses = "character") %>%
+    remap_col_names(natl_mort_readm_map) %>%
+    mutate(across(everything(), str_trim)) %>%
+    select_at(unname(unlist(natl_mort_readm_map))) %>%
+    mutate(
+      not_a_number = grepl("[^0-9.-]", score),
+      note = ifelse(not_a_number == TRUE, score, NA_character_),
+      score = ifelse(not_a_number == FALSE, score, NA_character_),
+      score = as.numeric(score),
+      start_date = lubridate::mdy(start_date),
+      end_date = lubridate::mdy(end_date)
+    ) %>%
+    mutate(
+      measure_id = ifelse(measure_id=="PSI_4_SURG_COMP", "PSI_04", measure_id),
+      measure_id = ifelse(measure_id=="PSI_90_SAFETY",   "PSI_90", measure_id)
+    ) %>%
+    select_at(final_cols)
+}
+
+read_hai_natl_data <- function(filename, state = FALSE) {
+  natl_hai_map <-
+    list(
+      "measure id"="measure_id", "score"="score",
+      "start date"="start_date", "end date"="end_date"
+    )
+  if (state) {
+    natl_hai_map['state'] <- 'state'
+    final_cols <-
+      c("state", "measure_id", "score", "note", "start_date", "end_date")
+  } else {
+    final_cols <- c("measure_id", "score", "note", "start_date", "end_date")
+  }
+  
+  read.csv(filename, check.names = FALSE, colClasses = "character") %>%
+    remap_col_names(natl_hai_map) %>%
+    mutate(across(everything(), str_trim)) %>%
+    select_at(unname(unlist(natl_hai_map))) %>%
+    mutate(
+      not_a_number = grepl("[^0-9.-]", score),
+      note = ifelse(not_a_number == TRUE, score, NA_character_),
+      score = ifelse(not_a_number == FALSE, score, NA_character_),
+      score = as.numeric(score),
+      start_date = lubridate::mdy(start_date),
+      end_date = lubridate::mdy(end_date)
+    ) %>%
+    select_at(final_cols)
+}
+
+
+read_hcahps_natl_data <- function(filename) {
+  
+  hcahps_measure_res <- c("CLEAN(?:_HSP)?", "HSP_RATING", "QUIET(?:_HSP)?",
+                          "RECMND", str_c("COMP_", c(1:7)))
+  hcahps_measure_res <- str_c("H_", hcahps_measure_res)
+  hcahps_filter_re <- str_c("^(", paste0(hcahps_measure_res, collapse = "|"), ")")
+  hcahps_answer_re <- str_c(hcahps_filter_re, "_(.*)")
+  
+  hcahps_all_answers <- c(
+    "LINEAR_SCORE", "STAR_RATING", "SN_P", "U_P", "A_P", "N_P", "Y_P",
+    "D_SD", "A", "SA", "0_6", "7_8", "9_10", "DN", "PY", "DY"
+  )
+  hcahps_top_box_answers <- c("A_P", "Y_P", "SA", "9_10", "DY")
+  
+  natl_hai_map <-
+    list(
+      "measure id"="measure_id", "percent"="percent",
+      "start date"="start_date", "end date"="end_date"
+    )
+  
+  df <-
+    read.csv(filename, check.names = FALSE, colClasses = "character") %>%
+    remap_col_names(natl_hai_map) %>%
+    mutate(across(everything(), str_trim)) %>%
+    select(measure_id, percent, start_date, end_date) %>%
+    mutate(
+      not_a_number = grepl("[^0-9.-]", percent),
+      note = ifelse(not_a_number == TRUE, percent, NA_character_),
+      percent = ifelse(not_a_number == FALSE, percent, NA_character_),
+      percent = as.numeric(percent),
+      start_date = lubridate::mdy(start_date),
+      end_date = lubridate::mdy(end_date)
+    ) %>%
+    select(
+      measure_id, percent, note, start_date, end_date
+    )
+
+
+  df <-
+    df %>%
+    transmute(
+      full_measure_id = measure_id,
+      answer_percent = percent,
+      start_date,
+      end_date
+    ) %>%
+    filter(grepl(hcahps_filter_re, full_measure_id)) %>%
+    mutate(
+      measure_id = map_chr(full_measure_id, ~str_match(.x, hcahps_answer_re)[, 2]),
+      answer_id  = map_chr(full_measure_id, ~str_match(.x, hcahps_answer_re)[, 3]),
+      top_box_flag = (answer_id %in% hcahps_top_box_answers),
+      measure_id = ifelse(measure_id %in% c("H_CLEAN", "H_QUIET"),
+                          str_c(measure_id, "_HSP"), measure_id),
+      answer_percent,
+    ) %>%
+    select(
+      measure_id, answer_id, top_box_flag, answer_percent, start_date, end_date
+    )
+  
+  df <-
+    df %>%
+    select(-top_box_flag) %>%
+    pivot_wider(names_from = answer_id, values_from = answer_percent) %>%
+    left_join(
+      df %>%
+        filter(top_box_flag) %>%
+        transmute(measure_id, TOP_BOX = answer_percent),
+      by = "measure_id"
+    )
+  
+  missing_answers <- setdiff(hcahps_all_answers, colnames(df))
+  if (length(missing_answers) > 0) {
+    df[, missing_answers] <- NA_real_
+  }
+  
+  df %>%
+    select_at(
+      c("measure_id", "TOP_BOX", hcahps_all_answers, "start_date", "end_date")
+    )
+}
+
+
+
+
+read_timely_natl_data <- function(filename, state = FALSE) {
+  natl_hai_map <-
+    list(
+      "measure id"="measure_id", "score"="score",
+      "start date"="start_date", "end date"="end_date"
+    )
+  if (state) {
+    natl_hai_map['state'] <- 'state'
+    final_cols <-
+      c("state", "measure_id", "score", "start_date", "end_date", "note")
+  } else {
+    final_cols <- c(unname(unlist(natl_hai_map)), "note")
+  }
+  
+  read.csv(filename, check.names = FALSE, colClasses = "character") %>%
+    remap_col_names(natl_hai_map) %>%
+    mutate(across(everything(), str_trim)) %>%
+    select_at(unname(unlist(natl_hai_map))) %>%
+    mutate(
+      measure_id = toupper(measure_id),
+      measure_id = ifelse(grepl("IMM.*3", measure_id), "IMM_3", measure_id),
+      not_a_number = grepl("[^0-9.-]", score),
+      note = ifelse(not_a_number == TRUE, score, NA_character_),
+      score = ifelse(not_a_number == FALSE, score, NA_character_),
+      score = as.numeric(score),
+      start_date = lubridate::mdy(start_date),
+      end_date = lubridate::mdy(end_date)
+    ) %>%
+    select_at(final_cols)
+}
+
+read_imaging_natl_data <- function(filename, state = FALSE) {
+  natl_hai_map <-
+    list(
+      "measure id"="measure_id", "score"="score",
+      "start date"="start_date", "end date"="end_date"
+    )
+  if (state) {
+    natl_hai_map['state'] <- 'state'
+    final_cols <-
+      c("state", "measure_id", "score", "start_date", "end_date", "note")
+  } else {
+    final_cols <- c(unname(unlist(natl_hai_map)), "note")
+  }
+
+  read.csv(filename, check.names = FALSE, colClasses = "character") %>%
+    remap_col_names(natl_hai_map) %>%
+    mutate(across(everything(), str_trim)) %>%
+    select_at(unname(unlist(natl_hai_map))) %>%
+    mutate(
+      measure_id = toupper(measure_id),
+      not_a_number = grepl("[^0-9.-]", score),
+      note = ifelse(not_a_number == TRUE, score, NA_character_),
+      score = ifelse(not_a_number == FALSE, score, NA_character_),
+      score = as.numeric(score),
+      start_date = lubridate::mdy(start_date),
+      end_date = lubridate::mdy(end_date)
+    ) %>%
+    select_at(final_cols)
+}
+```
+
+
+
+```{r}
+natl_mort_readm_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_mort_readm_files_natl)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_mort_readm_natl_data))
+# state_mort_readm_df <-
+#   care_compare_df %>%
+#   mutate(filename = map(data_dir, find_mort_readm_files_natl, state = TRUE)) %>%
+#   unnest(filename) %>%
+#   mutate(data = map(filename, read_mort_readm_natl_data, state = TRUE))
+
+natl_hai_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_hai_files_natl)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_hai_natl_data))
+
+natl_hcahps_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_hcahps_files_natl)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_hcahps_natl_data))
+
+natl_timely_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_timely_files_natl)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_timely_natl_data))
+# natl_timely_df <-
+#   care_compare_df %>%
+#   mutate(filename = map(data_dir, find_timely_files_natl, state = TRUE)) %>%
+#   unnest(filename) %>%
+#   mutate(data = map(filename, read_timely_natl_data, state = TRUE))
+
+natl_imaging_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_imaging_files_natl)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_imaging_natl_data))
+# state_imaging_df <-
+#   care_compare_df %>%
+#   mutate(filename = map(data_dir, find_imaging_files_natl, state = TRUE)) %>%
+#   unnest(filename) %>%
+#   mutate(data = map(filename, read_imaging_natl_data, state = TRUE))
+```
+
+
+
+
+IPFQR is much harder
+
+```{r}
+ipfqr_get_first_word <- function(x) {
+  y <- toupper(str_trim(str_split(x, "[_ ]")[[1]][1]))
+}
+ipfqr_get_all_but_first_word <- function(x) {
+  y <- str_trim(str_split(x, "[_ ]")[[1]])
+  if (length(y) > 1)
+    str_trim(paste(y[2:length(y)], collapse = " "))
+  else
+    NA_character_
+}
+ipfqr_split_slash_measure_id <- function(x) {
+  if (grepl("/", x)) {
+    m_vec <- str_split(x, "/")[[1]]
+    m_pre <- str_split(m_vec, "-")[[1]][1]
+    m_vec[2] <- str_c(m_pre, m_vec[2])
+    m_vec
+  } else {
+    x
+  }
+}
+
+read_ipfqr_natl_data <- function(filename) {
+  df <-
+    read.csv(filename, check.names = FALSE, colClasses = "character") %>%
+    pivot_longer(cols = everything(),
+                 names_to = "col_name", values_to = "value") %>%
+    transmute(
+      col_name = gsub("^N[ _]", "", col_name),
+      col_name = gsub("__", "_", col_name),
+      measure_id = map_chr(col_name, ipfqr_get_first_word),
+      measure_id = map(measure_id, ipfqr_split_slash_measure_id),
+      measure_stat = map_chr(col_name, ipfqr_get_all_but_first_word),
+      value
+    ) %>%
+    unnest(measure_id) %>%
+    mutate(
+      measure_id = gsub("-", "_", measure_id),
+      measure_stat = case_when(
+        measure_stat == "%"                     ~ "score",#"percent",
+        measure_stat == "Overall % of Total"    ~ "score",#"percent",
+        measure_stat == "Rate"                  ~ "score",#"rate",
+        measure_stat == "Overall Rate Per 1000" ~ "score",#"rate",
+        measure_stat == "Overall Num"           ~ "numerator",
+        measure_stat == "Numerator"             ~ "numerator",
+        measure_stat == "Overall Den"           ~ "DEN",
+        measure_stat == "Denominator"           ~ "DEN",
+        measure_stat == "Response"              ~ "response",
+        measure_stat == "Assessed Response"     ~ "assessed_response",
+        measure_stat == "Use Response"          ~ "use_response",
+        measure_stat == "Category"              ~ "category",
+        measure_stat == "Lower Estimate"        ~ "rate_low_estimate",
+        measure_stat == "Higher Estimate"       ~ "rate_high_estimate",
+        grepl("start[ _]date", col_name, ignore.case = TRUE) ~ "start_date",
+        grepl("end[ _]date",   col_name, ignore.case = TRUE) ~ "end_date",
+        TRUE                                    ~ measure_stat
+      ),
+      measure_id = case_when(
+        tolower(measure_id) == "flu" ~ "IMM_2",
+        TRUE                         ~ measure_id
+      )
+    ) %>%
+    filter(
+      measure_stat %in% c(
+        #"percent", "rate",
+        "score", "numerator", "DEN", "rate_low_estimate",
+        "rate_high_estimate", "response", "assessed_response", "use_response",
+        "start_date", "end_date"
+      ),
+      !(tolower(measure_id) %in% c("start", "end"))
+    ) %>%
+    filter(value != "Not Available") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c(measure_id),
+                names_from = measure_stat, values_from = value)
+  if ("score" %in% colnames(df))
+    df$score <- as.numeric(gsub("%", "", df$score))
+  if ("DEN" %in% colnames(df))
+    df$DEN <- as.integer(df$DEN)
+  if ("numerator" %in% colnames(df))
+    df$numerator <- as.integer(df$numerator)
+  if ("start_date" %in% colnames(df))
+    df$start_date <- lubridate::ymd(df$start_date)
+  if ("end_date" %in% colnames(df))
+    df$end_date <- lubridate::ymd(df$end_date)
+  
+  df
+}
+
+
+natl_ipfqr_df <-
+  care_compare_df %>%
+  mutate(filename = map(data_dir, find_ipfqr_files_natl)) %>%
+  unnest(filename) %>%
+  mutate(data = map(filename, read_ipfqr_natl_data))
+```
+
+
+
+```{r}
+all_national_rates_df <-
+  bind_rows(
+    natl_mort_readm_df %>% select(cc_date, data) %>% unnest(data) %>%
+      select(cc_date, measure_id, score, start_date, end_date),
+    natl_hai_df %>% select(cc_date, data) %>% unnest(data) %>%
+      select(cc_date, measure_id, score, start_date, end_date),
+    natl_hcahps_df %>% select(cc_date, data) %>% unnest(data) %>%
+      select(cc_date, measure_id, score = TOP_BOX, start_date, end_date),
+    natl_timely_df %>% select(cc_date, data) %>% unnest(data) %>%
+      select(cc_date, measure_id, score, start_date, end_date),
+    natl_imaging_df %>% select(cc_date, data) %>% unnest(data) %>%
+      select(cc_date, measure_id, score, start_date, end_date),
+    natl_ipfqr_df %>% select(cc_date, data) %>% unnest(data) %>%
+      select(cc_date, measure_id, score, start_date, end_date)
+  )
+
+all_national_rates_df
+```
+
+
+```{r}
+save(all_national_rates_df, file = file.path(dirs$rdata, "all_national_rates_df.RData"))
+# all_national_rates_df %>%
+#   write.csv("C:/Users/jimur/Desktop/all_national_rates_2023-01-16.csv", row.names = FALSE)
+```
+
+
+
+```{r}
+natl_mort_readm_df %>%
+  select(cc_date, data) %>%
+  unnest(data) %>%
+  filter(grepl("^(MORT|READM)", measure_id)) %>%
+  count(measure_id)
+```
+
+
+```{r}
+load(file.path(dirs$rdata, "all_data_list.RData"))
+names(all_data_list)
+```
+
+
+```{r}
+measure_id_history_df <- all_data_list$measure_id_history_df
+all_measure_info_df <- all_data_list$all_measure_info_df
+
+
+hcahps_measure_res <- c("CLEAN(?:_HSP)?", "HSP_RATING", "QUIET(?:_HSP)?",
+                        "RECMND", str_c("COMP_", c(1:7)))
+hcahps_measure_res <- str_c("H_", hcahps_measure_res)
+hcahps_measure_re <- str_c("^(", paste0(hcahps_measure_res, collapse = "|"), ")")
+
+hcahps_top_box_answers <- c("A_P", "Y_P", "SA", "9_10", "DY")
+hcahps_top_box_re <-
+  str_c("_(", paste(hcahps_top_box_answers, collapse = "|"), ")$")
+
+natl_hcahps_2_df <-
+  natl_hcahps_df %>%
+  transmute(
+    cc_date, data, filename = basename(filename)
+  ) %>%
+  unnest(data) %>%
+  filter(grepl(hcahps_top_box_re, measure_id)) %>%
+  filter(grepl(hcahps_measure_re, measure_id)) %>%
+  mutate(measure_id = gsub(hcahps_top_box_re, "", measure_id))
+
+natl_hai_2_df <-
+  natl_hai_df %>%
+  transmute(
+    cc_date, data, filename = basename(filename)
+  ) %>%
+  unnest(data) %>%
+  mutate(measure_id = gsub("_SIR$", "", measure_id))
+
+
+natl_combined_df <-
+  bind_rows(
+    natl_mort_readm_df %>% transmute(cc_date, data, filename = basename(filename)) %>% unnest(data),
+    natl_hcahps_2_df %>% rename(national_rate = percent),
+    natl_hai_2_df %>% rename(national_rate = score),
+    natl_timely_df %>% transmute(cc_date, data, filename = basename(filename)) %>%
+      unnest(data) %>% rename(national_rate = score),
+    natl_imaging_df %>% transmute(cc_date, data, filename = basename(filename)) %>%
+      unnest(data) %>% rename(national_rate = score),
+    natl_ipfqr_df %>% transmute(cc_date, data, filename = basename(filename)) %>% unnest(data) %>%
+      select(-numerator, -DEN) %>% rename(national_rate = score) %>%
+      mutate(
+        note = NA_character_,
+        start_date = lubridate::mdy(start_date),
+        end_date = lubridate::mdy(end_date)
+      )
+  )
+```
+
+
+
+```{r}
+excel_df <-
+  all_measure_info_df %>%
+  filter(!is.na(sas_measure_id) | grepl("^(MORT|READM|HAI)", measure_id)) %>%
+  filter(!(measure_id %in% c("H_GLOB", "H_INDI"))) %>%
+  mutate(
+    measure_id = gsub("IMM_3_OP_27", "IMM_3", measure_id),
+    measure_id = ifelse(measure_id == "PSI_4_SURG_COMP", "PSI_04", measure_id),
+    measure_id = ifelse(measure_id == "PSI_90_SAFETY",   "PSI_90", measure_id)
+  ) %>%
+  select(
+    cc_date, measure_id, sas_measure_id, measure_name,
+    measure_start_date = start_date,
+    measure_end_date = end_date
+  ) %>%
+  left_join(
+    natl_combined_df, by = c("cc_date", "measure_id")
+  ) %>%
+  left_join(
+    all_measure_info_df %>%
+      filter(!is.na(sas_measure_id), cc_date == "2020-10-01") %>%
+      select(measure_id, measure_group) %>%
+      mutate(
+        measure_id = ifelse(str_trim(measure_id) == "PSI_4_SURG_COMP", "PSI_04", measure_id),
+        measure_id = ifelse(str_trim(measure_id) == "PSI_90_SAFETY",   "PSI_90", measure_id)
+      ),
+    by = "measure_id"
+  ) %>%
+  transmute(
+    `Care Compare Report Date` = cc_date,
+    `Domain` = case_when(
+      grepl("^MORT",  measure_id) ~ "Mortality",
+      grepl("^READM", measure_id) ~ "Readmission",
+      TRUE                        ~ measure_group
+    ),
+    `Measure ID` = measure_id,
+    `National Rate` = national_rate,
+    Note = note,
+    `Data Start Date` = start_date,
+    #`Data Start Date2` = measure_start_date,
+    `Data End Date` = end_date,
+    #`Data End Date2` = measure_end_date,
+    `Measure Name` = measure_name,
+    Filename = filename
+  )
+
+excel_df
+```
+
+
+
+```{r}
+openxlsx::write.xlsx(excel_df, file = "temp_national_rates.xlsx")
+```
+
+
+

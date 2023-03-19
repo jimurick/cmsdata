@@ -75,8 +75,10 @@ initial_star_processing <- function(...) {
   
   read_cols <- row_df %$% c(1, first_col:last_col)
   df <- row_df %$%
-    read.csv(filename, skip = skip, encoding = encoding,
-             colClasses = "character")[, read_cols]
+    # read.csv(filename, skip = skip, encoding = encoding,
+    #          colClasses = "character")[, read_cols]
+    read.csv(filename, encoding = encoding,
+             colClasses = "character")[-(1:skip), read_cols]
   colnames(df) <- c("contract_id", measure_ids)
   
   df %>%
@@ -127,6 +129,7 @@ measure_stars_df <-
 
 measure_stars_df
 ```
+
 
 
 ```{r}

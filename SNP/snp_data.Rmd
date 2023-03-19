@@ -22,30 +22,36 @@ library(readxl)
 
 ```{r}
 snp_base_url <- "https://www.cms.gov/files/zip/"
-zip_2020_fname <- "snp-comprehensive-report-january-2020.zip"
-zip_2021_fname <- "snp-comprehensive-report-january-2021.zip"
+zip_2020_fname <- file.path("zips", "snp-comprehensive-report-january-2020.zip")
+zip_2021_fname <- file.path("zips", "snp-comprehensive-report-january-2021.zip")
+zip_2022_fname <- file.path("zips", "snp-comprehensive-report-january-2022.zip")
 url_2020_01 <- str_c(snp_base_url, zip_2020_fname)
 url_2021_01 <- str_c(snp_base_url, zip_2021_fname)
+url_2022_01 <- str_c(snp_base_url, zip_2022_fname)
 
 download.file(url = url_2020_01, destfile = zip_2020_fname)
 download.file(url = url_2021_01, destfile = zip_2021_fname)
+download.file(url = url_2022_01, destfile = zip_2022_fname)
 
-snp_2020_dir <- "SNP_2020_01"
-snp_2021_dir <- "SNP_2021_01"
+snp_2020_dir <- file.path("zips", "SNP_2020_01")
+snp_2021_dir <- file.path("zips", "SNP_2021_01")
+snp_2022_dir <- file.path("zips", "SNP_2022_01")
 unzip(zip_2020_fname, exdir = snp_2020_dir)
 unzip(zip_2021_fname, exdir = snp_2021_dir)
+unzip(zip_2022_fname, exdir = snp_2022_dir)
 
 file_2020 <- file.path(snp_2020_dir, "SNP_2020_01", "SNP_2020_01.xls")
 file_2021 <- file.path(snp_2021_dir, "SNP_2021_01", "SNP_2021_01.xls")
+file_2022 <- file.path(snp_2022_dir, "SNP_2022_01", "SNP_2022_01.xls")
 
-sapply(c(file_2020, file_2021), file.exists)
+sapply(c(file_2020, file_2021, file_2022), file.exists)
 ```
 
 
 
 ```{r}
 
-combined_df <-
+combined_2021_df <-
   rbind(
     read_xls(file_2020, skip = 16) %>%
       transmute(
@@ -74,8 +80,8 @@ combined_df <-
   ) %>%
   pivot_wider(names_from = snp_type, values_from = x)
 
-combined_and_categorized_df <-
-  combined_df %>%
+combined_and_categorized_2021_df <-
+  combined_2021_df %>%
   mutate(
     snp_type = case_when(
       is.na(C) & is.na(D) &  is.na(I) ~ "CCP w/o SNP",
@@ -84,29 +90,87 @@ combined_and_categorized_df <-
     )
   )
 
-combined_and_categorized_df %>%
+combined_and_categorized_2021_df %>%
   group_by(contract_id) %>%
   summarize(n = n(), n_snp_types = n_distinct(snp_type), .groups = "drop") %>%
   filter(n_snp_types > 1)
 
-combined_df %>% filter(contract_id %in% c("H4091", "H6832")) %>% 
+combined_2021_df %>% filter(contract_id %in% c("H4091", "H6832")) %>% 
   arrange(contract_id)
 ```
 
-
 ```{r}
-snp_df <-
-  combined_df %>%
-  group_by(contract_id) %>%
-  summarize(C = max(C), D = max(D), I = max(I), .groups = "drop") %>%
+combined_2022_df <-
+  rbind(
+    read_xls(file_2021, skip = 16) %>%
+      transmute(
+        year        = 2021L,
+        contract_id = `Contract Number`,
+        snp_type    = `Special Needs Plan Type`,
+        enrollment  = `Plan Enrollment`
+      ),
+    read_xls(file_2022, skip = 16) %>%
+      transmute(
+        year        = 2022L,
+        contract_id = `Contract Number`,
+        snp_type    = `Special Needs Plan Type`,
+        enrollment  = `Plan Enrollment`
+      )
+  ) %>%
+  filter(str_trim(replace_na(enrollment, '')) != "") %>%
+  distinct(year, contract_id, snp_type) %>%
+  mutate(
+    snp_type = case_when(
+      snp_type == "Chronic or Disabling Condition" ~ "C",
+      snp_type == "Dual-Eligible"                  ~ "D",
+      snp_type == "Institutional"                  ~ "I"
+    ),
+    x = 1
+  ) %>%
+  pivot_wider(names_from = snp_type, values_from = x)
+
+combined_and_categorized_2022_df <-
+  combined_2022_df %>%
   mutate(
     snp_type = case_when(
       is.na(C) & is.na(D) &  is.na(I) ~ "CCP w/o SNP",
       is.na(C) & is.na(D) & !is.na(I) ~ "CCP with Only I-SNP",
       TRUE                            ~ "CCP with SNP"
     )
-  ) %>%
-  select(-C, -D, -I)
+  )
+
+combined_and_categorized_2022_df %>%
+  group_by(contract_id) %>%
+  summarize(n = n(), n_snp_types = n_distinct(snp_type), .groups = "drop") %>%
+  filter(n_snp_types > 1)
+
+combined_2022_df %>% filter(contract_id %in% c("H4091", "H6351")) %>% 
+  arrange(contract_id)
+```
+
+
+
+
+```{r}
+actually_combine_two_years <- function(combined_df) {
+  combined_df %>%
+    group_by(contract_id) %>%
+    summarize(C = max(C), D = max(D), I = max(I), .groups = "drop") %>%
+    mutate(
+      snp_type = case_when(
+        is.na(C) & is.na(D) &  is.na(I) ~ "CCP w/o SNP",
+        is.na(C) & is.na(D) & !is.na(I) ~ "CCP with Only I-SNP",
+        TRUE                            ~ "CCP with SNP"
+      )
+    ) %>%
+    select(-C, -D, -I)
+}
+
+snp_df <-
+  bind_rows(
+    actually_combine_two_years(combined_2021_df) %>% mutate(star_year = 2022L),
+    actually_combine_two_years(combined_2022_df) %>% mutate(star_year = 2023L)
+  )
 
 snp_df
 ```
@@ -115,7 +179,8 @@ snp_df
 snp_filename <- "snp_df.csv"
 write.csv(snp_df, file = snp_filename, row.names = FALSE)
 file.copy(snp_filename,
-          file.path("..", "Stars - Health Plans", "tables", snp_filename))
+          file.path("..", "Stars - Health Plans", "tables", snp_filename),
+          overwrite = TRUE)
 ```
 
 

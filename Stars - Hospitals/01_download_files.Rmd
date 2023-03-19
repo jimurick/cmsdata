@@ -1,0 +1,100 @@
+---
+title: "Download Care Compare Files"
+output:
+html_notebook: default
+---
+
+This script downloads the relevant data to the folder "zips", with a subdirectory for each Care Compare report.
+
+```{r, echo=TRUE, eval=FALSE}
+source("init.R")
+
+library(rvest)
+
+yearly_dir <- file.path(dirs$zip, "yearly")
+
+dir.create(dirs$zip, showWarnings = FALSE)
+dir.create(yearly_dir, showWarnings = FALSE)
+```
+
+
+Manually construct the URLs for the "yearly" zip files, from this URL:
+<https://data.cms.gov/provider-data/archived-data/hospitals>
+
+```{r}
+cms_base_url <-
+  "https://data.cms.gov/provider-data/sites/default/files/archive/Hospitals/"
+
+make_zip_link <- function(x, archive = TRUE) {
+  if (archive) {
+    str_c(cms_base_url, x, "/hospitals_archive_", x, ".zip")
+  } else {
+    str_c(cms_base_url, x, "/hospitals_", x, ".zip")
+  }
+}
+
+yearly_zip_urls <- c(
+  sapply(2015:2020, make_zip_link), sapply(2021:2022, make_zip_link, FALSE)
+)
+```
+
+
+Download the yearly zip files
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE}
+for (zip in yearly_zip_urls) {
+  destfilename <- file.path(yearly_dir, basename(zip))
+  if (!file.exists(destfilename)) {
+    download.file(url = zip, destfile = destfilename)
+  }
+}
+
+yearly_files <- list.files(yearly_dir)
+yearly_files <-
+  file.path(yearly_dir, yearly_files[grepl("[.]zip$", yearly_files)])
+
+yearly_files
+```
+
+
+Unzip the yearly archives and delete the zip files
+
+```{r}
+for (zip in yearly_files) {
+  unzip(zip, exdir = dirs$zip)
+}
+unlink(yearly_dir, recursive = TRUE)
+```
+
+
+Delete some of the unneeded Care Compare zip files (the ones starting with "hos_archive" or "va_data_archive")
+
+```{r}
+zip_files <- list.files(dirs$zip)
+zip_files <- file.path(dirs$zip, zip_files[grepl("[.]zip$", zip_files)])
+
+to_delete <- grepl("/(hos|va_data)_archive", zip_files)
+for (zip in zip_files[to_delete]) {
+  unlink(zip)
+}
+zip_files <- zip_files[!to_delete]
+```
+
+
+Unzip the remaining reports and delete the zip files
+
+```{r}
+for (zip in zip_files) {
+  unzipped_name <- file.path(dirs$zip, str_split(basename(zip), "[.]")[[1]][1])
+  unzip(zip, exdir = unzipped_name)
+  unlink(zip)
+}
+```
+
+
+
+
+
+
+
+

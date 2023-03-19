@@ -7,6 +7,8 @@ html_notebook: default
 
 ```{r}
 source("init.R")
+
+load(file.path(dirs$rdata, "08_contract_df.RData"))
 ```
 
 
@@ -14,7 +16,7 @@ source("init.R")
 file_vec <- get_unzipped_files_by_pattern("summary.*csv$")
 file_df <-
   tibble(
-    star_year = str_sub(names(file_vec), end = 4L),
+    star_year = as.integer(str_sub(names(file_vec), end = 4L)),
     file_name = unname(file_vec)
   ) %>%
   mutate(
@@ -23,13 +25,39 @@ file_df <-
     fall   = grepl("fall.?release", file_name, ignore.case = TRUE),
     spring = grepl("spring.?release", file_name, ignore.case = TRUE)
   ) %>%
-  relocate(file_name, .after = spring)
-
-file_df <- file_df %>% filter(!spring) %>%
+  relocate(file_name, .after = spring) %>%
+  filter(!spring) %>%
   mutate(file_key = str_c(star_year,
                           ifelse(part_c_only, "C", ""),
                           ifelse(part_d_only, "D", ""))) %>%
-  relocate(file_key, .before = star_year)
+  relocate(file_key, .before = star_year) %>%
+  inner_join(
+    tribble(
+      ~file_key, ~skip_rows, ~col_ind,   ~snp_col,    ~disaster_cols,
+    	"2009C",   1L,         c(1, 5),    NA_integer_, c(),
+    	"2009D",   2L,         c(1, 5),    NA_integer_, c(),
+    	"2010C",   1L,         c(1, 5),    NA_integer_, c(),
+    	"2010D",   3L,         c(1, 4),    NA_integer_, c(),
+    	"2011C",   1L,         c(1, 6, 7), NA_integer_, c(),
+    	"2011D",   3L,         c(1, 4),    NA_integer_, c(),
+    	"2012C",   1L,         c(1, 5, 8), NA_integer_, c(),
+    	"2012D",   3L,         c(1, 6),    NA_integer_, c(),
+    	"2013C",   1L,         c(1, 6, 9), NA_integer_, c(),
+    	"2013D",   3L,         c(1, 6),    NA_integer_, c(),
+    	"2014C",   1L,         c(1, 8, 9), NA_integer_, c(),
+    	"2014D",   1L,         c(1, 8),    NA_integer_, c(),
+    	"2015",    1L,         c(1, 8:10), NA_integer_, c(),
+    	"2016",    1L,         c(1, 8:10), NA_integer_, c(),
+    	"2017",    1L,         c(1, 8:10), NA_integer_, c(),
+    	"2018",    1L,         c(1, 7:9),  NA_integer_, c(),
+    	"2019",    1L,         c(1, 7:9),  6L,          c(),
+    	"2020",    1L,         c(1, 9:11), 6L,          c(7,8),
+    	"2021",    1L,         c(1, 9:11), 6L,          c(7,8),
+    	"2022",    1L,         c(1, 9:11), 6L,          c(7,8),
+      "2023",    1L,         c(1, 9:11), 6L,          c(7,8),
+    ),
+    by = "file_key"
+  )
 
 
 process_one_summary_file <- function(file_name, skip_rows, col_ind, part_c_only) {
@@ -51,30 +79,7 @@ process_one_summary_file <- function(file_name, skip_rows, col_ind, part_c_only)
 }
 
 summary_stars_df <-
-  tribble(
-    ~file_key, ~skip_rows, ~col_ind,
-  	"2009C",   1,          c(1, 5),
-  	"2009D",   2,          c(1, 5),
-  	"2010C",   1,          c(1, 5),
-  	"2010D",   3,          c(1, 4),
-  	"2011C",   1,          c(1, 6, 7),
-  	"2011D",   3,          c(1, 4),
-  	"2012C",   1,          c(1, 5, 8),
-  	"2012D",   3,          c(1, 6),
-  	"2013C",   1,          c(1, 6, 9),
-  	"2013D",   3,          c(1, 6),
-  	"2014C",   1,          c(1, 8, 9),
-  	"2014D",   1,          c(1, 8),
-  	"2015",    1,          c(1, 8:10),
-  	"2016",    1,          c(1, 8:10),
-  	"2017",    1,          c(1, 8:10),
-  	"2018",    1,          c(1, 7:9),
-  	"2019",    1,          c(1, 7:9),
-  	"2020",    1,          c(1, 9:11),
-  	"2021",    1,          c(1, 9:11),
-  	"2022",    1,          c(1, 9:11),
-  ) %>%
-  inner_join(file_df, by = "file_key") %>%
+  file_df %>%
   mutate(
     star_year = as.integer(star_year),
     summary_df = pmap(list(file_name, skip_rows, col_ind, part_c_only),
@@ -102,9 +107,52 @@ summary_stars_df
 ```
 
 
+
+```{r}
+process_one_summary_file_snp_disaster <-
+  function(file_name, skip_rows, snp_col, disaster_cols) {
+    
+  col_ind <- c(1, snp_col, disaster_cols)
+  df <-
+    read.csv(file_name, skip = skip_rows, check.names = FALSE)[, col_ind] %>%
+    mutate(across(everything(), str_trim))
+  all_cnames <- c("contract_id", "snp_flag")
+  if (length(disaster_cols) == 2) {
+    all_cnames <-
+      c(all_cnames, "disaster_pcg_year_minus_3", "disaster_pcg_year_minus_2")
+  }
+  colnames(df) <- all_cnames
+  df
+}
+
+
+snp_disaster_df <-
+  file_df %>%
+  mutate(disaster_len = map_int(disaster_cols, length)) %>%
+  filter(!is.na(snp_col) | disaster_len > 0) %>%
+  mutate(df = pmap(list(file_name, skip_rows, snp_col, disaster_cols),
+                   process_one_summary_file_snp_disaster)) %>%
+  select(star_year, df) %>%
+  unnest(df) %>%
+  mutate(
+    snp_flag = (snp_flag == "Yes"),
+    disaster_pcg_year_minus_3 = as.numeric(disaster_pcg_year_minus_3) / 100,
+    disaster_pcg_year_minus_2 = as.numeric(disaster_pcg_year_minus_2) / 100
+  )
+
+contract_df <-
+  contract_df %>%
+  left_join(snp_disaster_df, by = c("star_year", "contract_id"))
+```
+
+
+
+
+
 ```{r}
 save(summary_stars_df,
      file = file.path(dirs$rdata, "09_summary_stars_df.RData"))
+save(contract_df, file = file.path(dirs$rdata, "09_contract_df.RData"))
 ```
 
 

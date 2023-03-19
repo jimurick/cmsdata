@@ -101,7 +101,7 @@ initial_c_cut_point_processing <- function(...) {
   
   df <-
     row_df %$%
-    read.csv(filename, skip = skip, nrows = nrows,
+    read.csv(filename, skip = skip, nrows = nrows, check.names = FALSE,
              colClasses = "character")[, first_col:last_col]
   colnames(df) <- df_colnames
   
@@ -118,19 +118,22 @@ initial_c_cut_point_processing <- function(...) {
 
 initial_d_cut_point_processing <- function(...) {
   row_df <- list(...)
+  
   measure_ids <- measure_df %>%
     filter(part == "D", star_year == row_df$star_year_copy, !display_measure) %>%
     pull(measure_id)
   df_colnames <- c("stars", measure_ids)
   #df_coltypes <- paste0(rep("c", length(df_colnames)), collapse="")
-  max_cols <- dim(row_df %$% read_csv(filename, skip = skip+1))[2]
-  print(max_cols)
+  max_cols <- dim(
+    row_df %$% read_csv(filename, skip = skip+1, col_types = cols())
+  )[2]
+  
   df_coltypes <- paste0(rep("c", max_cols), collapse="")
   
   df <-
     suppressMessages(
       row_df %$%
-      read_csv(filename, skip = skip+1, n_max = nrows, col_types = df_coltypes,
+      read_csv(filename, skip = skip+1, n_max = nrows, col_types = cols(),
                col_names = FALSE)[, first_col:last_col]
     )
   colnames(df) <- df_colnames
@@ -141,7 +144,7 @@ initial_d_cut_point_processing <- function(...) {
     transmute(
       cut_point_type = str_c("Part D ", row_df$part_d_type),
       measure_id,
-      stars,
+      stars = as.character(stars),
       text
     )
 }
@@ -184,6 +187,8 @@ initial_cp_df <-
 
 initial_cp_df
 ```
+
+
 
 ```{r}
 
@@ -484,6 +489,12 @@ save(cut_point_df, file = file.path(dirs$rdata, "07_cut_point_df.RData"))
 
 
 # Testing and scratch work
+
+```{r}
+measure_star_ranges_df %>% filter(star_year == 2023) %>% arrange(measure_id, cut_point_type, stars)
+cut_point_df %>% filter(star_year == 2023) %>% arrange(measure_id, cut_point_type, low_star)
+```
+
 
 ```{r, eval=FALSE}
 # All measures that didn't get a `higher_is_better` value are from CAHPS
