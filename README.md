@@ -1,6 +1,6 @@
 # cmsdata
 
-This project is a collection of R notebooks that pull data from [www.cms.gov](www.cms.gov). The data included in the R package `cmsstars` is pulled and cleaned here.
+This project is a collection of R notebooks that pull data from [www.cms.gov](www.cms.gov). The data included in my R package [hospitalstars](https://github.com/jimurick/hospitalstars) is pulled and cleaned here.
 
 The 4 sources of data are:
 
