@@ -1,8 +1,8 @@
 # cmsdata
 
-This project is a collection of R notebooks that pull data from <www.cms.gov>. The data included in the R package `cmsstars` is pulled and cleaned here.
+This project is a collection of R notebooks that pull data from [www.cms.gov](www.cms.gov). The data included in the R package `cmsstars` is pulled and cleaned here.
 
-The 4 sources of data are
+The 4 sources of data are:
 
 1. [Stars - Health Plans](https://www.cms.gov/Medicare/Prescription-Drug-Coverage/PrescriptionDrugCovGenIn/PerformanceData) for health plan star rating data since 2008
 2. [Stars - Hospital](https://data.cms.gov/provider-data/archived-data/hospitals) for hospital star rating data since 2015
