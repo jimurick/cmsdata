@@ -1,142 +1,149 @@
-measure_standard_name,data_source,part,2023,2022,2021,2020,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010,2009,2008
-Access to Primary Care Doctor Visits,HEDIS,C,DMC08,DMC09,DMC09,DMC09,DMC09,DMC10,DMC10,DMC11,DMC10,DMC12,DMC12,C11,C13,C12,C13,C09
-Adult BMI Assessment,HEDIS,C,,,C07,C07,C07,C07,C07,C07,C08,C10,C10,C12,DMC05,,,
-Annual Flu Vaccine,CAHPS,C,C03,C03,C03,C03,C03,C03,C03,C03,C04,C06,C06,C06,C07,C06,C07,C07
-Antidepressant Medication Management (6 months),HEDIS,C,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC04,C28,C23
-Appropriate Monitoring of Patients Taking Long-term Medications,HEDIS,C,,,,,,DMC04,DMC04,DMC05,DMC05,DMC05,DMC05,DMC05,C06,C05,C06,C06
-Asthma Medication Ratio,HEDIS,C,,,,,,DMC18,DMC27,,,,,,,,,
-Beneficiary Access and Performance Problems,Administrative Data,C,DME07,DME07,DME07,DME07,DME07,C30,C28,C28,DME08,C31,C31,C32,C33,C30,,
-Breast Cancer Screening,HEDIS,C,C01,C01,C01,C01,C01,C01,C01,C01,DMC22,C01,C01,C01,C01,C01,C01,C01
-Call Answer Timeliness,HEDIS,C,,,,,,,,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC01,C20,C16
-Call Center - Beneficiary Hold Time,Call Center Monitoring,C,DMC06,DMC07,DMC07,DMC07,DMC07,DMC08,DMC08,DMC09,,DMC09,DMC09,DMC09,C34,C31,,
-Call Center - Calls Disconnected When Customer Calls Health Plan,Call Center Monitoring,C,DMC09,DMC10,DMC10,DMC10,DMC10,DMC11,DMC11,DMC12,,DMC15,DMC15,,,,,
-Call Center - CSR Understandability,Call Center Monitoring,C,,,,,,,,,,,,,,DMC02,,
-Call Center - Foreign Language Interpreter and TTY Availability,Call Center Monitoring,C,C28,C28,C32,C33,C34,C34,C32,C32,,C36,C36,C36,C36,C33,,
-Call Center - Information Accuracy,Call Center Monitoring,C,,,,,,,,,,DMC10,DMC10,DMC10,C35,C32,,
-Cardiac Rehabilitation,HEDIS,C,DMC27,,,,,,,,,,,,,,,
-Cardiovascular Care - Cholesterol Screening,HEDIS,C,,,,,,,,,C02,C03,C03,C03,C03,,C03,C03
-Care Coordination,CAHPS,C,C22,C22,C26,C27,C28,C27,C25,C25,C28,C29,C29,,,,,
-Care for Older Adults - Functional Status Assessment,HEDIS,C,,,C10,C10,C10,C10,C10,C10,C11,C12,C12,C14,,,,
-Care for Older Adults - Medication Review,HEDIS,C,C06,C06,C09,C09,C09,C09,C09,C09,C10,C11,C11,C13,,,,
-Care for Older Adults - Pain Assessment,HEDIS,C,C07,C07,C11,C11,C11,C11,C11,C11,C12,C13,C13,C15,,,,
-Cholesterol Screening,HEDIS,C,,,,,,,,,,,,,,C03,,
-Colorectal Cancer Screening,HEDIS,C,C02,C02,C02,C02,C02,C02,C02,C02,C01,C02,C02,C02,C02,C02,C02,C02
-Complaints about the Health Plan,CTM,C,C23,C23,C27,C28,C29,C28,C26,C26,C29,C30,C30,C31,C30,C26,,
-Computer use by provider helpful,CAHPS,C,,,,,,,DMC20,DMC21,DMC20,,,,,,,
-Computer use made talking to provider easier,CAHPS,C,,,,,,,DMC21,DMC22,DMC21,,,,,,,
-Computer used during office visits,CAHPS,C,,,,,,,DMC19,DMC20,DMC19,,,,,,,
-Continuous Beta Blocker Treatment,HEDIS,C,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC04,DMC04,DMC04,DMC04,DMC04,DMC04,DMC05,C32,C27
-Controlling Blood Pressure,HEDIS,C,C12,DMC16,DMC16,DMC17,C16,C16,C16,C16,C18,C19,C19,C21,C19,C15,C29,C24
-Customer Service,CAHPS,C,C19,C19,C23,C24,C25,C24,C22,C22,C25,C26,C26,C28,C27,C23,C22,
-Diabetes Care,HEDIS,C,,,,,,,,,,,,,,C14,,
-Diabetes Care - Blood Sugar Controlled,HEDIS,C,C11,C11,C15,C15,C15,C15,C15,C15,C16,C17,C17,C19,C17,,C26,C21
-Diabetes Care - Cholesterol Controlled,HEDIS,C,,,,,,,,,C17,C18,C18,C20,C18,,C27,C22
-Diabetes Care - Cholesterol Screening,HEDIS,C,,,,,,,,,C03,C04,C04,C04,C04,,C04,C04
-Diabetes Care - Eye Exam,HEDIS,C,C09,C09,C13,C13,C13,C13,C13,C13,C14,C15,C15,C17,C15,,C24,C19
-Diabetes Care - Kidney Disease Monitoring,HEDIS,C,C10,C10,C14,C14,C14,C14,C14,C14,C15,C16,C16,C18,C16,,C25,C20
-Doctor Follow up for Depression,HEDIS,C,,,,,,,,,,,,,,,C15,C11
-Doctors who Communicate Well,CAHPS,C,DMC05,DMC06,DMC06,DMC06,DMC06,DMC07,DMC07,DMC08,DMC08,DMC08,DMC08,DMC08,C25,C21,C21,C17
-Engagement of Alcohol or other Drug Treatment,HEDIS,C,DMC13,DMC14,DMC14,DMC14,DMC14,DMC15,DMC15,DMC16,DMC15,DMC19,,,,,,
-Enrollment Timeliness,MARx,C,,,,,,DME01,DME01,DME01,DME01,DME01,C37,,,,,
-Follow-up after Emergency Department Visit for Patients with Multiple Chronic Conditions,HEDIS,C,DMC15,DMC17,DMC17,DMC18,,,,,,,,,,,,
-Follow-up visit after Hospital Stay for Mental Illness (within 30 days of Discharge),HEDIS,C,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC03,C14,C10
-Getting Appointments and Care Quickly,CAHPS,C,C18,C18,C22,C23,C24,C23,C21,C21,C24,C25,C25,C27,C26,C22,C17,C13
-Getting Needed Care,CAHPS,C,C17,C17,C21,C22,C23,C22,C20,C20,C23,C24,C24,C26,C24,C20,C16,C12
-Glaucoma Testing,HEDIS,C,,,,,,,,,,C05,C05,C05,C05,C04,C05,C05
-Grievance Rate,Part C & D Plan Reporting,C,DME01,DME01,DME01,DME01,DME01,DME02,DME02,DME02,DME02,DMC13,DMC13,,,,,
-Health Plan Quality Improvement,Star Ratings,C,C25,C25,C29,C30,C31,C31,C29,C29,C31,C33,C33,,,,,
-Hospitalizations for Potentially Preventable Complications,HEDIS,C,DMC14,DMC15,DMC15,DMC15,DMC15,DMC16,DMC24,,,,,,,,,
-Improving Bladder Control,HEDIS / HOS,C,C14,C14,C18,C18,C19,C19,DMC22,DMC23,C20,C21,C21,C23,C22,C18,C33,
-Improving or Maintaining Mental Health,HOS,C,DMC25,DMC27,C05,C05,C05,C05,C05,C05,C06,C08,C08,C09,C10,C09,C10,
-Improving or Maintaining Physical Health,HOS,C,DMC26,DMC28,C04,C04,C04,C04,C04,C04,C05,C07,C07,C08,C09,C08,C09,
-Initiation of Alcohol or other Drug Treatment,HEDIS,C,DMC12,DMC13,DMC13,DMC13,DMC13,DMC14,DMC14,DMC15,DMC14,DMC18,,,,,,
-Medication Management for People With Asthma,HEDIS,C,,,,,,,DMC26,,,,,,,,,
-Medication Reconciliation Post-Discharge,HEDIS,C,C15,C15,C19,C19,C20,C20,DMC23,,,,,,,,,
-Members Choosing to Leave the Plan,MBDSS,C,C24,C24,C28,C29,C30,C29,C27,C27,C30,C32,C32,C33,DME01,C29,,
-Monitoring Physical Activity,HEDIS / HOS,C,C04,C04,C06,C06,C06,C06,C06,C06,C07,C09,C09,C10,C12,C11,C12,
-Osteoporosis Management in Women who had a Fracture,HEDIS,C,C08,C08,C12,C12,C12,C12,C12,C12,C13,C14,C14,C16,C14,C13,C23,C18
-Osteoporosis Testing,HEDIS / HOS,C,,DMC04,DMC04,DMC04,DMC04,DMC05,DMC05,DMC06,DMC06,DMC06,DMC06,DMC06,C11,C10,C11,
-Pharmacotherapy Management of COPD Exacerbation - Bronchodilator,HEDIS,C,DMC11,DMC12,DMC12,DMC12,DMC12,DMC13,DMC13,DMC14,DMC13,DMC17,,,,,,
-Pharmacotherapy Management of COPD Exacerbation - Systemic Corticosteroid,HEDIS,C,DMC10,DMC11,DMC11,DMC11,DMC11,DMC12,DMC12,DMC13,DMC12,DMC16,,,,,,
-Plan All-Cause Readmissions,HEDIS,C,DMC21,DMC23,DMC23,C20,C21,C21,C19,C19,C22,C23,C23,C25,,,,
-Plan Makes Timely Decisions about Appeals,Independent Review Entity (IRE) / Maximus,C,C26,C26,C30,C31,C32,C32,C30,C30,C32,C34,C34,C34,C31,C27,C35,C28
-Pneumonia Vaccine,CAHPS,C,DMC07,DMC08,DMC08,DMC08,DMC08,DMC09,DMC09,DMC10,DMC09,DMC11,DMC11,C07,C08,C07,C08,C08
-Rating of Health Care Quality,CAHPS,C,C20,C20,C24,C25,C26,C25,C23,C23,C26,C27,C27,C29,C28,C24,C18,C14
-Rating of Health Plan,CAHPS,C,C21,C21,C25,C26,C27,C26,C24,C24,C27,C28,C28,C30,C29,C25,C19,C15
-Reducing the Risk of Falling,HEDIS / HOS,C,C13,C13,C17,C17,C18,C18,C18,C18,C21,C22,C22,C24,C23,C19,C34,
-Reminders for appointments,CAHPS,C,,,,,,,DMC16,DMC17,DMC16,,,,,,,
-Reminders for immunizations,CAHPS,C,,,,,,,DMC17,DMC18,DMC17,,,,,,,
-Reminders for screening tests,CAHPS,C,,,,,,,DMC18,DMC19,DMC18,,,,,,,
-Reviewing Appeals Decisions,Independent Review Entity (IRE) / Maximus,C,C27,C27,C31,C32,C33,C33,C31,C31,C33,C35,C35,C35,C32,C28,C36,C29
-Rheumatoid Arthritis Management,HEDIS,C,,C12,C16,C16,C17,C17,C17,C17,C19,C20,C20,C22,C20,C16,C30,C25
-Special Needs Plan (SNP) Care Management,Part C Plan Reporting,C,C05,C05,C08,C08,C08,C08,C08,C08,C09,DMC14,DMC14,,,,,
-Statin Therapy for Patients with Cardiovascular Disease,HEDIS,C,C16,C16,C20,C21,C22,DMC17,DMC25,,,,,,,,,
-Testing to Confirm Chronic Obstructive Pulmonary Disease,HEDIS,C,DMC04,DMC05,DMC05,DMC05,DMC05,DMC06,DMC06,DMC07,DMC07,DMC07,DMC07,DMC07,C21,C17,C31,C26
-Transitions of Care - Average,HEDIS,C,DMC20,DMC22,DMC22,DMC23,,,,,,,,,,,,
-Transitions of Care - Medication Reconciliation Post-Discharge,HEDIS,C,DMC16,DMC18,DMC18,DMC19,,,,,,,,,,,,
-Transitions of Care - Notification of Inpatient Admission,HEDIS,C,DMC17,DMC19,DMC19,DMC20,,,,,,,,,,,,
-Transitions of Care - Patient Engagement After Inpatient Discharge,HEDIS,C,DMC18,DMC20,DMC20,DMC21,,,,,,,,,,,,
-Transitions of Care - Receipt of Discharge Information,HEDIS,C,DMC19,DMC21,DMC21,DMC22,,,,,,,,,,,,
-4Rx Timeliness,Acumen / OIS (4Rx),D,,,,,,,,,,,,DMD03,D07,D07,,D09
-Adherence - Proportion of Days Covered,Prescription Drug Event (PDE) Data,D,,,,,,,,,,,,,DMD07,,,
-Antipsychotic Use in Persons with Dementia,Prescription Drug Event (PDE) Data,D,DMD08,DMD08,DMD12,DMD14,DMD16,DMD18,,,,,,,,,,
-Appeals Auto-Forward,Independent Review Entity (IRE) / Maximus,D,,,D02,D02,D02,D02,D02,D02,D01,D02,D03,D03,D05,D05,D05,D13
-Appeals Upheld,Independent Review Entity (IRE) / Maximus,D,,,D03,D03,D03,D03,D03,D03,D02,D03,D04,D04,D06,D06,D06,D14
-Beneficiary Access and Performance Problems,Administrative Data,D,DME07,DME07,DME07,DME07,DME07,D06,D06,D06,DME08,D05,D07,D07,D10,D11,,
-Call Center - Beneficiary Hold Time,Call Center Monitoring,D,DMD02,DMD02,DMD04,DMD04,DMD04,DMD04,DMD04,DMD04,,DMD04,DMD04,DMD05,D01,D01,D01,D01
-Call Center - Calls Disconnected -Pharmacist,Call Center Monitoring,D,,,,,,,,,,,,,,DMD05,D04,D04
-Call Center - Calls Disconnected When Customer Calls Drug Plan,Call Center Monitoring,D,DMD01,DMD01,DMD03,DMD03,DMD03,DMD03,DMD03,DMD03,,DMD03,DMD03,DMD04,DMD04,DMD04,D02,D02
-Call Center - CSR Understandability,Call Center Monitoring,D,,,,,,,,,,,,,,DMD06,,
-Call Center - Foreign Language Interpreter and TTY Availability,Call Center Monitoring,D,D01,D01,D01,D01,D01,D01,D01,D01,,D01,D02,D02,D04,D04,,
-Call Center - Information Accuracy,Call Center Monitoring,D,,,,,,,,,,DMD05,DMD05,DMD06,D03,D03,,
-Call Center - Pharmacy Hold Time,Call Center Monitoring,D,DMD04,DMD04,DMD08,DMD09,DMD09,DMD09,DMD11,DMD11,,DMD15,D01,D01,D02,D02,D03,D03
-Complaint Resolution,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,DMD07,,
-Complaints - Benefits,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,,D07,D11
-Complaints - Enrollment,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,D08,D08,D08,D12
-Complaints - Other,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,D09,D09,D10,
-Complaints - Pricing,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,,D09,D17
-Complaints about the Drug Plan,Complaints Tracking Module (CTM),D,D02,D02,D04,D04,D04,D04,D04,D04,D03,D04,D06,D06,,,,D05
-Diabetes Medication Dosing,Prescription Drug Event (PDE) Data,D,,,,DMD06,DMD06,DMD06,DMD06,DMD06,DMD04,DMD07,DMD07,DMD08,DMD06,DMD09,,
-Diabetes Treatment,Prescription Drug Event (PDE) Data,D,,,,,,,,,D10,D12,D15,D14,D17,D19,,
+measure_standard_name,data_source,part,2024,2023,2022,2021,2020,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010,2009,2008
+Access to Primary Care Doctor Visits,HEDIS,C,,DMC08,DMC09,DMC09,DMC09,DMC09,DMC10,DMC10,DMC11,DMC10,DMC12,DMC12,C11,C13,C12,C13,C09
+Adult BMI Assessment,HEDIS,C,,,,C07,C07,C07,C07,C07,C07,C08,C10,C10,C12,DMC05,,,
+Annual Flu Vaccine,CAHPS,C,C03,C03,C03,C03,C03,C03,C03,C03,C03,C04,C06,C06,C06,C07,C06,C07,C07
+Antidepressant Medication Management (6 months),HEDIS,C,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC04,C28,C23
+Appropriate Monitoring of Patients Taking Long-term Medications,HEDIS,C,,,,,,,DMC04,DMC04,DMC05,DMC05,DMC05,DMC05,DMC05,C06,C05,C06,C06
+Asthma Medication Ratio,HEDIS,C,,,,,,,DMC18,DMC27,,,,,,,,,
+Beneficiary Access and Performance Problems,Administrative Data,C,DME07,DME07,DME07,DME07,DME07,DME07,C30,C28,C28,DME08,C31,C31,C32,C33,C30,,
+Breast Cancer Screening,HEDIS,C,C01,C01,C01,C01,C01,C01,C01,C01,C01,DMC22,C01,C01,C01,C01,C01,C01,C01
+Call Answer Timeliness,HEDIS,C,,,,,,,,,DMC02,DMC02,DMC02,DMC02,DMC02,DMC02,DMC01,C20,C16
+Call Center - Beneficiary Hold Time,Call Center Monitoring,C,DMC06,DMC06,DMC07,DMC07,DMC07,DMC07,DMC08,DMC08,DMC09,,DMC09,DMC09,DMC09,C34,C31,,
+Call Center - Calls Disconnected When Customer Calls Health Plan,Call Center Monitoring,C,DMC09,DMC09,DMC10,DMC10,DMC10,DMC10,DMC11,DMC11,DMC12,,DMC15,DMC15,,,,,
+Call Center - CSR Understandability,Call Center Monitoring,C,,,,,,,,,,,,,,,DMC02,,
+Call Center - Foreign Language Interpreter and TTY Availability,Call Center Monitoring,C,C30,C28,C28,C32,C33,C34,C34,C32,C32,,C36,C36,C36,C36,C33,,
+Call Center - Information Accuracy,Call Center Monitoring,C,,,,,,,,,,,DMC10,DMC10,DMC10,C35,C32,,
+Cardiac Rehabilitation - Achievement,HEDIS,C,DMC25,DMC29,,,,,,,,,,,,,,,
+Cardiac Rehabilitation - Engagement 1,HEDIS,C,DMC26,DMC30,,,,,,,,,,,,,,,
+Cardiac Rehabilitation - Engagement 2,HEDIS,C,DMC27,DMC31,,,,,,,,,,,,,,,
+Cardiac Rehabilitation - Initiation,HEDIS,C,DMC28,DMC32,,,,,,,,,,,,,,,
+Cardiovascular Care - Cholesterol Screening,HEDIS,C,,,,,,,,,,C02,C03,C03,C03,C03,,C03,C03
+Care Coordination,CAHPS,C,C24,C22,C22,C26,C27,C28,C27,C25,C25,C28,C29,C29,,,,,
+Care for Older Adults - Functional Status Assessment,HEDIS,C,DMC21,DMC25,DMC25,C10,C10,C10,C10,C10,C10,C11,C12,C12,C14,,,,
+Care for Older Adults - Medication Review,HEDIS,C,C06,C06,C06,C09,C09,C09,C09,C09,C09,C10,C11,C11,C13,,,,
+Care for Older Adults - Pain Assessment,HEDIS,C,C07,C07,C07,C11,C11,C11,C11,C11,C11,C12,C13,C13,C15,,,,
+Cholesterol Screening,HEDIS,C,,,,,,,,,,,,,,,C03,,
+Colorectal Cancer Screening,HEDIS,C,C02,C02,C02,C02,C02,C02,C02,C02,C02,C01,C02,C02,C02,C02,C02,C02,C02
+Cholesterol Cancer Screening - Age 45-75,HEDIS,C,DMC29,,,,,,,,,,,,,,,,
+Complaints about the Health Plan,CTM,C,C25,C23,C23,C27,C28,C29,C28,C26,C26,C29,C30,C30,C31,C30,C26,,
+Computer use by provider helpful,CAHPS,C,,,,,,,,DMC20,DMC21,DMC20,,,,,,,
+Computer use made talking to provider easier,CAHPS,C,,,,,,,,DMC21,DMC22,DMC21,,,,,,,
+Computer used during office visits,CAHPS,C,,,,,,,,DMC19,DMC20,DMC19,,,,,,,
+Continuous Beta Blocker Treatment,HEDIS,C,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC03,DMC04,DMC04,DMC04,DMC04,DMC04,DMC04,DMC05,C32,C27
+Controlling Blood Pressure,HEDIS,C,C11,C12,DMC16,DMC16,DMC17,C16,C16,C16,C16,C18,C19,C19,C21,C19,C15,C29,C24
+Customer Service,CAHPS,C,C21,C19,C19,C23,C24,C25,C24,C22,C22,C25,C26,C26,C28,C27,C23,C22,
+Diabetes Care,HEDIS,C,,,,,,,,,,,,,,,C14,,
+Diabetes Care - Blood Sugar Controlled,HEDIS,C,C10,C11,C11,C15,C15,C15,C15,C15,C15,C16,C17,C17,C19,C17,,C26,C21
+Diabetes Care - Cholesterol Controlled,HEDIS,C,,,,,,,,,,C17,C18,C18,C20,C18,,C27,C22
+Diabetes Care - Cholesterol Screening,HEDIS,C,,,,,,,,,,C03,C04,C04,C04,C04,,C04,C04
+Diabetes Care - Eye Exam,HEDIS,C,C09,C09,C09,C13,C13,C13,C13,C13,C13,C14,C15,C15,C17,C15,,C24,C19
+Diabetes Care - Kidney Disease Monitoring,HEDIS,C,,C10,C10,C14,C14,C14,C14,C14,C14,C15,C16,C16,C18,C16,,C25,C20
+Doctor Follow up for Depression,HEDIS,C,,,,,,,,,,,,,,,,C15,C11
+Doctors who Communicate Well,CAHPS,C,DMC05,DMC05,DMC06,DMC06,DMC06,DMC06,DMC07,DMC07,DMC08,DMC08,DMC08,DMC08,DMC08,C25,C21,C21,C17
+Engagement of Alcohol or other Drug Treatment,HEDIS,C,DMC13,DMC13,DMC14,DMC14,DMC14,DMC14,DMC15,DMC15,DMC16,DMC15,DMC19,,,,,,
+Enrollment Timeliness,MARx,C,,,,,,,DME01,DME01,DME01,DME01,DME01,C37,,,,,
+Follow-up after Emergency Department Visit for Patients with Multiple Chronic Conditions,HEDIS,C,C18,DMC15,DMC17,DMC17,DMC18,,,,,,,,,,,,
+Follow-up visit after Hospital Stay for Mental Illness (within 30 days of Discharge),HEDIS,C,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC01,DMC03,C14,C10
+Getting Appointments and Care Quickly,CAHPS,C,C20,C18,C18,C22,C23,C24,C23,C21,C21,C24,C25,C25,C27,C26,C22,C17,C13
+Getting Needed Care,CAHPS,C,C19,C17,C17,C21,C22,C23,C22,C20,C20,C23,C24,C24,C26,C24,C20,C16,C12
+Glaucoma Testing,HEDIS,C,,,,,,,,,,,C05,C05,C05,C05,C04,C05,C05
+Grievance Rate,Part C & D Plan Reporting,C,DME01,DME01,DME01,DME01,DME01,DME01,DME02,DME02,DME02,DME02,DMC13,DMC13,,,,,
+Health Plan Quality Improvement,Star Ratings,C,C27,C25,C25,C29,C30,C31,C31,C29,C29,C31,C33,C33,,,,,
+Hospitalizations for Potentially Preventable Complications,HEDIS,C,DMC14,DMC14,DMC15,DMC15,DMC15,DMC15,DMC16,DMC24,,,,,,,,,
+Improving Bladder Control,HEDIS / HOS,C,C13,C14,C14,C18,C18,C19,C19,DMC22,DMC23,C20,C21,C21,C23,C22,C18,C33,
+Improving or Maintaining Mental Health,HOS,C,DMC23,DMC27,DMC27,C05,C05,C05,C05,C05,C05,C06,C08,C08,C09,C10,C09,C10,
+Improving or Maintaining Physical Health,HOS,C,DMC24,DMC28,DMC28,C04,C04,C04,C04,C04,C04,C05,C07,C07,C08,C09,C08,C09,
+Initiation of Alcohol or other Drug Treatment,HEDIS,C,DMC12,DMC12,DMC13,DMC13,DMC13,DMC13,DMC14,DMC14,DMC15,DMC14,DMC18,,,,,,
+Kidney Health Evaluation for Patients with Diabetes,HEDIS,C,DMC22,DMC26,,,,,,,,,,,,,,,
+Medication Management for People With Asthma,HEDIS,C,,,,,,,,DMC26,,,,,,,,,
+Medication Reconciliation Post-Discharge,HEDIS,C,C14,C15,C15,C19,C19,C20,C20,DMC23,,,,,,,,,
+Members Choosing to Leave the Plan,MBDSS,C,C26,C24,C24,C28,C29,C30,C29,C27,C27,C30,C32,C32,C33,DME01,C29,,
+Monitoring Physical Activity,HEDIS / HOS,C,C04,C04,C04,C06,C06,C06,C06,C06,C06,C07,C09,C09,C10,C12,C11,C12,
+Osteoporosis Management in Women who had a Fracture,HEDIS,C,C08,C08,C08,C12,C12,C12,C12,C12,C12,C13,C14,C14,C16,C14,C13,C23,C18
+Osteoporosis Testing,HEDIS / HOS,C,,,DMC04,DMC04,DMC04,DMC04,DMC05,DMC05,DMC06,DMC06,DMC06,DMC06,DMC06,C11,C10,C11,
+Pharmacotherapy Management of COPD Exacerbation - Bronchodilator,HEDIS,C,DMC11,DMC11,DMC12,DMC12,DMC12,DMC12,DMC13,DMC13,DMC14,DMC13,DMC17,,,,,,
+Pharmacotherapy Management of COPD Exacerbation - Systemic Corticosteroid,HEDIS,C,DMC10,DMC10,DMC11,DMC11,DMC11,DMC11,DMC12,DMC12,DMC13,DMC12,DMC16,,,,,,
+Physical Functioning Activities of Daily Living,HOS,C,DMC20,DMC24,,,,,,,,,,,,,,,
+Plan All-Cause Readmissions,HEDIS,C,C15,DMC21,DMC23,DMC23,C20,C21,C21,C19,C19,C22,C23,C23,C25,,,,
+Plan Makes Timely Decisions about Appeals,Independent Review Entity (IRE) / Maximus,C,C28,C26,C26,C30,C31,C32,C32,C30,C30,C32,C34,C34,C34,C31,C27,C35,C28
+Pneumonia Vaccine,CAHPS,C,DMC07,DMC07,DMC08,DMC08,DMC08,DMC08,DMC09,DMC09,DMC10,DMC09,DMC11,DMC11,C07,C08,C07,C08,C08
+Rating of Health Care Quality,CAHPS,C,C22,C20,C20,C24,C25,C26,C25,C23,C23,C26,C27,C27,C29,C28,C24,C18,C14
+Rating of Health Plan,CAHPS,C,C23,C21,C21,C25,C26,C27,C26,C24,C24,C27,C28,C28,C30,C29,C25,C19,C15
+Reducing the Risk of Falling,HEDIS / HOS,C,C12,C13,C13,C17,C17,C18,C18,C18,C18,C21,C22,C22,C24,C23,C19,C34,
+Reminders for appointments,CAHPS,C,,,,,,,,DMC16,DMC17,DMC16,,,,,,,
+Reminders for immunizations,CAHPS,C,,,,,,,,DMC17,DMC18,DMC17,,,,,,,
+Reminders for screening tests,CAHPS,C,,,,,,,,DMC18,DMC19,DMC18,,,,,,,
+Reviewing Appeals Decisions,Independent Review Entity (IRE) / Maximus,C,C29,C27,C27,C31,C32,C33,C33,C31,C31,C33,C35,C35,C35,C32,C28,C36,C29
+Rheumatoid Arthritis Management,HEDIS,C,,,C12,C16,C16,C17,C17,C17,C17,C19,C20,C20,C22,C20,C16,C30,C25
+Special Needs Plan (SNP) Care Management,Part C Plan Reporting,C,C05,C05,C05,C08,C08,C08,C08,C08,C08,C09,DMC14,DMC14,,,,,
+Statin Therapy for Patients with Cardiovascular Disease,HEDIS,C,C16,C16,C16,C20,C21,C22,DMC17,DMC25,,,,,,,,,
+Testing to Confirm Chronic Obstructive Pulmonary Disease,HEDIS,C,DMC04,DMC04,DMC05,DMC05,DMC05,DMC05,DMC06,DMC06,DMC07,DMC07,DMC07,DMC07,DMC07,C21,C17,C31,C26
+Transitions of Care - Average,HEDIS,C,C17,DMC20,DMC22,DMC22,DMC23,,,,,,,,,,,,
+Transitions of Care - Medication Reconciliation Post-Discharge,HEDIS,C,DMC16,DMC16,DMC18,DMC18,DMC19,,,,,,,,,,,,
+Transitions of Care - Notification of Inpatient Admission,HEDIS,C,DMC17,DMC17,DMC19,DMC19,DMC20,,,,,,,,,,,,
+Transitions of Care - Patient Engagement After Inpatient Discharge,HEDIS,C,DMC18,DMC18,DMC20,DMC20,DMC21,,,,,,,,,,,,
+Transitions of Care - Receipt of Discharge Information,HEDIS,C,DMC19,DMC19,DMC21,DMC21,DMC22,,,,,,,,,,,,
+4Rx Timeliness,Acumen / OIS (4Rx),D,,,,,,,,,,,,,DMD03,D07,D07,,D09
+Adherence - Proportion of Days Covered,Prescription Drug Event (PDE) Data,D,,,,,,,,,,,,,,DMD07,,,
+Antipsychotic Use in Persons with Dementia,Prescription Drug Event (PDE) Data,D,DMD08,DMD08,DMD08,DMD12,DMD14,DMD16,DMD18,,,,,,,,,,
+Appeals Auto-Forward,Independent Review Entity (IRE) / Maximus,D,,,,D02,D02,D02,D02,D02,D02,D01,D02,D03,D03,D05,D05,D05,D13
+Appeals Upheld,Independent Review Entity (IRE) / Maximus,D,,,,D03,D03,D03,D03,D03,D03,D02,D03,D04,D04,D06,D06,D06,D14
+Beneficiary Access and Performance Problems,Administrative Data,D,DME07,DME07,DME07,DME07,DME07,DME07,D06,D06,D06,DME08,D05,D07,D07,D10,D11,,
+Call Center - Beneficiary Hold Time,Call Center Monitoring,D,DMD02,DMD02,DMD02,DMD04,DMD04,DMD04,DMD04,DMD04,DMD04,,DMD04,DMD04,DMD05,D01,D01,D01,D01
+Call Center - Calls Disconnected -Pharmacist,Call Center Monitoring,D,,,,,,,,,,,,,,,DMD05,D04,D04
+Call Center - Calls Disconnected When Customer Calls Drug Plan,Call Center Monitoring,D,DMD01,DMD01,DMD01,DMD03,DMD03,DMD03,DMD03,DMD03,DMD03,,DMD03,DMD03,DMD04,DMD04,DMD04,D02,D02
+Call Center - CSR Understandability,Call Center Monitoring,D,,,,,,,,,,,,,,,DMD06,,
+Call Center - Foreign Language Interpreter and TTY Availability,Call Center Monitoring,D,D01,D01,D01,D01,D01,D01,D01,D01,D01,,D01,D02,D02,D04,D04,,
+Call Center - Information Accuracy,Call Center Monitoring,D,,,,,,,,,,,DMD05,DMD05,DMD06,D03,D03,,
+Call Center - Pharmacy Hold Time,Call Center Monitoring,D,DMD04,DMD04,DMD04,DMD08,DMD09,DMD09,DMD09,DMD11,DMD11,,DMD15,D01,D01,D02,D02,D03,D03
+Complaint Resolution,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,,DMD07,,
+Complaints - Benefits,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,,,D07,D11
+Complaints - Enrollment,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,D08,D08,D08,D12
+Complaints - Other,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,D09,D09,D10,
+Complaints - Pricing,Complaints Tracking Module (CTM),D,,,,,,,,,,,,,,,,D09,D17
+Complaints about the Drug Plan,Complaints Tracking Module (CTM),D,D02,D02,D02,D04,D04,D04,D04,D04,D04,D03,D04,D06,D06,,,,D05
+Diabetes Medication Dosing,Prescription Drug Event (PDE) Data,D,,,,,DMD06,DMD06,DMD06,DMD06,DMD06,DMD04,DMD07,DMD07,DMD08,DMD06,DMD09,,
+Diabetes Treatment,Prescription Drug Event (PDE) Data,D,,,,,,,,,,D10,D12,D15,D14,D17,D19,,
 "Drug Plan Provides Current Information on Costs and Coverage for Medicare’s
-Website",Acumen / OIS (LIS Match Rates),D,,,DMD06,DMD07,DMD07,DMD07,DMD07,DMD07,DMD05,DMD08,DMD08,DMD09,D14,D15,D15,D10
-Drug Plan Quality Improvement,Star Ratings,D,D04,D04,D06,D06,D06,D07,D07,D07,D05,D07,D09,,,,,
-Drug-Drug Interactions,Prescription Drug Event (PDE) Data,D,,,DMD05,DMD05,DMD05,DMD05,DMD05,DMD05,DMD03,DMD06,DMD06,DMD07,DMD05,DMD08,,
-Enrollment Timeliness,MARx,D,,,,,,DME01,DME01,DME01,DME01,DME01,D05,D05,DMD03,DMD03,,
-Formulary Administration Analysis,Part D Sponsor,D,,,,,DMD15,DMD17,,,,,,,,,,
-Getting Information From Drug Plan,CAHPS,D,,,,,,,DMD10,DMD10,DMD09,DMD14,D10,D09,D11,D12,D12,D06
-Getting Needed Prescription Drugs,CAHPS,D,D06,D06,D08,D08,D08,D09,D09,D09,D07,D09,D12,D11,D13,D14,D14,D08
-Grievance Rate,Part C & D Plan Reporting,D,DME01,DME01,DME01,DME01,DME01,DME02,DME02,DME02,DME02,DMD11,DMD11,,,,,
-High Risk Medication,Prescription Drug Event (PDE) Data,D,,,,DMD13,DMD14,DMD16,D11,D11,D09,D11,D14,D13,D16,D18,D19,
-Medication Adherence for Cholesterol (Statins),Prescription Drug Event (PDE) Data,D,D10,D10,D12,D12,D12,D13,D14,D14,D13,D15,D18,D17,,,,
-Medication Adherence for Diabetes Medications,Prescription Drug Event (PDE) Data,D,D08,D08,D10,D10,D10,D11,D12,D12,D11,D13,D16,D15,,,,
-Medication Adherence for Hypertension (RAS antagonists),Prescription Drug Event (PDE) Data,D,D09,D09,D11,D11,D11,D12,D13,D13,D12,D14,D17,D16,,,,
-Member Retention,MBDSS,D,,,,,,,,,,,,,,,D11,
-Members Choosing to Leave the Plan,MBDSS,D,D03,D03,D05,D05,D05,D05,D05,D05,D04,D06,D08,D08,DME01,D10,,
-MPF - Composite,"PDE Data, MPF Pricing Files",D,,,,,,,,,,,,D12,D15,,,
-MPF - Stability,"PDE Data, MPF Pricing Files",D,DMD03,DMD03,DMD07,DMD08,DMD08,DMD08,DMD08,DMD08,DMD06,DMD10,DMD10,,,D16,D17,D16
-MPF - Updates,"PDE Data, MPF Pricing Files",D,,,,,,,,,,DMD09,DMD09,DMD10,DMD08,DMD10,D16,D15
-MPF Price Accuracy,"PDE Data, MPF Pricing Files",D,D07,D07,D09,D09,D09,D10,D10,D10,D08,D10,D13,,,D17,D18,
-MTM Program Completion Rate for CMR,Prescription Drug Event (PDE) Data,D,D11,D11,D13,D13,D13,D14,D15,D15,DMD07,DMD12,DMD12,,,,,
-Plan Submitted Higher Prices for Display on MPF,"PDE Data, MPF Pricing Files",D,DMD05,DMD05,DMD09,DMD10,DMD10,DMD10,DMD12,DMD12,DMD10,DMD16,,,,,,
+Website",Acumen / OIS (LIS Match Rates),D,,,,DMD06,DMD07,DMD07,DMD07,DMD07,DMD07,DMD05,DMD08,DMD08,DMD09,D14,D15,D15,D10
+Drug Plan Quality Improvement,Star Ratings,D,D04,D04,D04,D06,D06,D06,D07,D07,D07,D05,D07,D09,,,,,
+Drug-Drug Interactions,Prescription Drug Event (PDE) Data,D,,,,DMD05,DMD05,DMD05,DMD05,DMD05,DMD05,DMD03,DMD06,DMD06,DMD07,DMD05,DMD08,,
+Enrollment Timeliness,MARx,D,,,,,,,DME01,DME01,DME01,DME01,DME01,D05,D05,DMD03,DMD03,,
+Formulary Administration Analysis,Part D Sponsor,D,,,,,,DMD15,DMD17,,,,,,,,,,
+Getting Information From Drug Plan,CAHPS,D,,,,,,,,DMD10,DMD10,DMD09,DMD14,D10,D09,D11,D12,D12,D06
+Getting Needed Prescription Drugs,CAHPS,D,D06,D06,D06,D08,D08,D08,D09,D09,D09,D07,D09,D12,D11,D13,D14,D14,D08
+Grievance Rate,Part C & D Plan Reporting,D,DME01,DME01,DME01,DME01,DME01,DME01,DME02,DME02,DME02,DME02,DMD11,DMD11,,,,,
+High Risk Medication,Prescription Drug Event (PDE) Data,D,,,,,DMD13,DMD14,DMD16,D11,D11,D09,D11,D14,D13,D16,D18,D19,
+Initial Opioid Prescribing,Prescription Drug Event (PDE) Data,D,DMD15,DMD15,,,,,,,,,,,,,,,
+Medication Adherence for Cholesterol (Statins),Prescription Drug Event (PDE) Data,D,D10,D10,D10,D12,D12,D12,D13,D14,D14,D13,D15,D18,D17,,,,
+Medication Adherence for Diabetes Medications,Prescription Drug Event (PDE) Data,D,D08,D08,D08,D10,D10,D10,D11,D12,D12,D11,D13,D16,D15,,,,
+Medication Adherence for Hypertension (RAS antagonists),Prescription Drug Event (PDE) Data,D,D09,D09,D09,D11,D11,D11,D12,D13,D13,D12,D14,D17,D16,,,,
+Member Retention,MBDSS,D,,,,,,,,,,,,,,,,D11,
+Members Choosing to Leave the Plan,MBDSS,D,D03,D03,D03,D05,D05,D05,D05,D05,D05,D04,D06,D08,D08,DME01,D10,,
+MPF - Composite,"PDE Data, MPF Pricing Files",D,,,,,,,,,,,,,D12,D15,,,
+MPF - Stability,"PDE Data, MPF Pricing Files",D,DMD03,DMD03,DMD03,DMD07,DMD08,DMD08,DMD08,DMD08,DMD08,DMD06,DMD10,DMD10,,,D16,D17,D16
+MPF - Updates,"PDE Data, MPF Pricing Files",D,,,,,,,,,,,DMD09,DMD09,DMD10,DMD08,DMD10,D16,D15
+MPF Price Accuracy,"PDE Data, MPF Pricing Files",D,D07,D07,D07,D09,D09,D09,D10,D10,D10,D08,D10,D13,,,D17,D18,
+MTM Program Completion Rate for CMR,Prescription Drug Event (PDE) Data,D,D11,D11,D11,D13,D13,D13,D14,D15,D15,DMD07,DMD12,DMD12,,,,,
+Plan Submitted Higher Prices for Display on MPF,"PDE Data, MPF Pricing Files",D,DMD05,DMD05,DMD05,DMD09,DMD10,DMD10,DMD10,DMD12,DMD12,DMD10,DMD16,,,,,,
 Polypharmacy: Use of Multiple Anticholinergic Medications in Older Adults (Poly-ACH),"Prescription Drug
-Event (PDE) Data",D,DMD13,DMD13,DMD20,,,,,,,,,,,,,
-Polypharmacy: Use of Multiple CNS-Active Medications in Older Adults (Poly-CNS),Prescription Drug Event (PDE) Data,D,DMD14,DMD14,DMD21,,,,,,,,,,,,,
-Rate of Chronic Use of Atypical Antipsychotics by Elderly Beneficiaries in Nursing Homes,Fu Associates,D,,,,,,,DMD09,DMD09,DMD08,DMD13,DMD13,,,,,
-Rating of Drug Plan,CAHPS,D,D05,D05,D07,D07,D07,D08,D08,D08,D06,D08,D11,D10,D12,D13,D13,D07
-Reminders to fill prescriptions,CAHPS,D,DMD06,DMD06,DMD10,DMD11,DMD12,DMD13,DMD15,DMD15,DMD13,,,,,,,
-Reminders to take medications,CAHPS,D,DMD07,DMD07,DMD11,DMD12,DMD13,DMD14,DMD16,DMD16,DMD14,,,,,,,
-Statin Use in Persons with Diabetes (SUPD),Prescription Drug Event (PDE) Data,D,D12,D12,D14,D14,D14,DMD15,DMD17,,,,,,,,,
-Timely Effectuation of Appeals,Independent Review Entity (IRE) / Maximus,D,,,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,,
-Timely Receipt of Case Files for Appeals,Independent Review Entity (IRE) / Maximus,D,,,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,,
-Transition monitoring,Transition Monitoring Program Analysis,D,,,,,DMD11,,,,,,,,,,,
-Transition monitoring - failure rate for all other drugs,Transition Monitoring Program Analysis,D,,,,,,DMD12,DMD14,DMD14,DMD12,,,,,,,
-Transition monitoring - failure rate for drugs within classes of clinical concern,Transition Monitoring Program Analysis,D,,,,,,DMD11,DMD13,DMD13,DMD11,,,,,,,
-Use of Opioids at High Dosage and from Multiple Providers in Persons Without Cancer (OHDMP),Prescription Drug Event (PDE) Data,D,,,DMD15,,,,,,,,,,,,,
-Use of Opioids at High Dosage in Persons Without Cancer (OHD),Prescription Drug Event (PDE) Data,D,,DMD11,DMD18,,,,,,,,,,,,,
-Use of Opioids from Multiple Providers in Persons Without Cancer (OMP),Prescription Drug Event (PDE) Data,D,,DMD12,DMD19,,,,,,,,,,,,,
-"Disenrollment Reasons - Financial Reasons for Disenrollment (MA-PD, MA-Only, PDP)",Disenrollment Reasons Survey,E,DME04,DME04,DME04,DME04,DME04,DME05,DME05,DME05,DME05,,,,,,,
-"Disenrollment Reasons - Problems Getting Information and Help from the Plan (MA-PD, PDP)",Disenrollment Reasons Survey,E,DME06,DME06,DME06,DME06,DME06,DME07,DME07,DME07,DME07,,,,,,,
-"Disenrollment Reasons - Problems Getting the Plan to Provide and Pay for Needed Care(MA-PD, MA-Only)",Disenrollment Reasons Survey,E,DME02,DME02,DME02,DME02,DME02,DME03,DME03,DME03,DME03,,,,,,,
-"Disenrollment Reasons - Problems with Coverage of Doctors and Hospitals (MA-PD, MA-Only)",Disenrollment Reasons Survey,E,DME03,DME03,DME03,DME03,DME03,DME04,DME04,DME04,DME04,,,,,,,
-"Disenrollment Reasons - Problems with Prescription Drug Benefits and Coverage (MA-PD, PDP)",Disenrollment Reasons Survey,E,DME05,DME05,DME05,DME05,DME05,DME06,DME06,DME06,DME06,,,,,,,
+Event (PDE) Data",D,DMD13,DMD13,DMD13,DMD20,,,,,,,,,,,,,
+Polypharmacy: Use of Multiple CNS-Active Medications in Older Adults (Poly-CNS),Prescription Drug Event (PDE) Data,D,DMD14,DMD14,DMD14,DMD21,,,,,,,,,,,,,
+Rate of Chronic Use of Atypical Antipsychotics by Elderly Beneficiaries in Nursing Homes,Fu Associates,D,,,,,,,,DMD09,DMD09,DMD08,DMD13,DMD13,,,,,
+Rating of Drug Plan,CAHPS,D,D05,D05,D05,D07,D07,D07,D08,D08,D08,D06,D08,D11,D10,D12,D13,D13,D07
+Reminders to fill prescriptions,CAHPS,D,DMD06,DMD06,DMD06,DMD10,DMD11,DMD12,DMD13,DMD15,DMD15,DMD13,,,,,,,
+Reminders to take medications,CAHPS,D,DMD07,DMD07,DMD07,DMD11,DMD12,DMD13,DMD14,DMD16,DMD16,DMD14,,,,,,,
+Statin Use in Persons with Diabetes (SUPD),Prescription Drug Event (PDE) Data,D,D12,D12,D12,D14,D14,D14,DMD15,DMD17,,,,,,,,,
+Timely Effectuation of Appeals,Independent Review Entity (IRE) / Maximus,D,,,,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,DMD02,,
+Timely Receipt of Case Files for Appeals,Independent Review Entity (IRE) / Maximus,D,,,,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,DMD01,,
+Transition monitoring,Transition Monitoring Program Analysis,D,,,,,,DMD11,,,,,,,,,,,
+Transition monitoring - failure rate for all other drugs,Transition Monitoring Program Analysis,D,,,,,,,DMD12,DMD14,DMD14,DMD12,,,,,,,
+Transition monitoring - failure rate for drugs within classes of clinical concern,Transition Monitoring Program Analysis,D,,,,,,,DMD11,DMD13,DMD13,DMD11,,,,,,,
+Use of Opioids at High Dosage and from Multiple Providers in Persons Without Cancer (OHDMP),Prescription Drug Event (PDE) Data,D,,,,DMD15,,,,,,,,,,,,,
+Use of Opioids at High Dosage in Persons Without Cancer (OHD),Prescription Drug Event (PDE) Data,D,DMD11,DMD11,DMD11,DMD18,,,,,,,,,,,,,
+Use of Opioids from Multiple Providers in Persons Without Cancer (OMP),Prescription Drug Event (PDE) Data,D,DMD12,DMD12,DMD12,DMD19,,,,,,,,,,,,,
+"Disenrollment Reasons - Financial Reasons for Disenrollment (MA-PD, MA-Only, PDP)",Disenrollment Reasons Survey,E,DME04,DME04,DME04,DME04,DME04,DME04,DME05,DME05,DME05,DME05,,,,,,,
+"Disenrollment Reasons - Problems Getting Information and Help from the Plan (MA-PD, PDP)",Disenrollment Reasons Survey,E,DME06,DME06,DME06,DME06,DME06,DME06,DME07,DME07,DME07,DME07,,,,,,,
+"Disenrollment Reasons - Problems Getting the Plan to Provide and Pay for Needed Care(MA-PD, MA-Only)",Disenrollment Reasons Survey,E,DME02,DME02,DME02,DME02,DME02,DME02,DME03,DME03,DME03,DME03,,,,,,,
+"Disenrollment Reasons - Problems with Coverage of Doctors and Hospitals (MA-PD, MA-Only)",Disenrollment Reasons Survey,E,DME03,DME03,DME03,DME03,DME03,DME03,DME04,DME04,DME04,DME04,,,,,,,
+"Disenrollment Reasons - Problems with Prescription Drug Benefits and Coverage (MA-PD, PDP)",Disenrollment Reasons Survey,E,DME05,DME05,DME05,DME05,DME05,DME05,DME06,DME06,DME06,DME06,,,,,,,

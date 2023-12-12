@@ -14,12 +14,17 @@ dirs <- list(
 wrong_dash  <- "\U2013"
 wrong_apost <- "\U2019"
 
-fix_dashes      <- function(x) { gsub(wrong_dash,  "-", x) }
-fix_apostrophes <- function(x) { gsub(wrong_apost, "'", x) }
+fix_dashes      <- function(x) { str_replace_all(x, wrong_dash,  "-") }
+fix_apostrophes <- function(x) { str_replace_all(x, wrong_apost, "'") }
 fix_non_ascii   <- function(x) { fix_dashes(fix_apostrophes(x)) }
 
 fix_utf <- function(x) {
-  gsub("\x92", "'", gsub("\x96", "-", gsub("\x94", "", x)))
+  gsub(iconv("\x92", from = "ISO-8859-1", to = "UTF-8"), "'",
+       gsub(iconv("\x96", from = "ISO-8859-1", to = "UTF-8"), "-",
+            gsub(iconv("\x94", from = "ISO-8859-1", to = "UTF-8"), "", x)))
+  # str_replace_all(x, "\x92", "'") %>%
+  #   str_replace_all("\x96", "-") %>%
+  #   str_replace_all("\x94", "")
 }
 
 get_unzipped_files_by_pattern <- function(file_re) {

@@ -160,6 +160,7 @@ initial_2019_df <- read.csv(filename_2019, sep = "\t", col.names = "x")
 
 temp_2019_df <-
   initial_2019_df %>%
+  mutate(x = map_chr(x, function(x) iconv(x, from = "ISO-8859-1", to = "UTF-8"))) %>%
   mutate(x = str_split(gsub(",+$", "", x), "\n")) %>%
   unnest(x) %>%
   mutate(y = str_split(x, "\t"), i = 1:n()) %>%

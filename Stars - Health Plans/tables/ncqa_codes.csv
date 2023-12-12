@@ -1,4 +1,16 @@
 star_year,measure_id,measure_name,ncqa_code
+2024,C01,Breast Cancer Screening,BCS
+2024,C02,Colorectal Cancer Screening,COL
+2024,C04,Monitoring Physical Activity,PAO
+2024,C06,Care for Older Adults - Medication Review,COA - Medication Review
+2024,C07,Care for Older Adults - Pain Assessment,COA - Pain Screening
+2024,C08,Osteoporosis Management in Women who had a Fracture,OMW
+2024,C09,Diabetes Care - Eye Exam,CDC - Eye Exam
+2024,C10,Diabetes Care - Blood Sugar Controlled,CDC - HbA1c Poor Control
+2024,C12,Reducing the Risk of Falling,FRM
+2024,C13,Improving Bladder Control,MUI
+2024,C14,Medication Reconciliation Post-Discharge,MRP
+2024,C16,Statin Therapy for Patients with Cardiovascular Disease,SPC
 2023,C01,Breast Cancer Screening,BCS
 2023,C02,Colorectal Cancer Screening,COL
 2023,C04,Monitoring Physical Activity,PAO

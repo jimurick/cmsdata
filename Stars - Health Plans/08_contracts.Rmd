@@ -78,19 +78,19 @@ one_contract_per_year_df <-
 one_contract_per_year_df
 ```
 
-
+**TODO**: Do I need this SNP data?
 
 ```{r}
-snp_df <-
-  read.csv(file.path(dirs$table, "snp_df.csv"))
-
-snp_df
+# snp_df <-
+#   read.csv(file.path(dirs$table, "snp_df.csv"))
+# 
+# snp_df
 ```
 
 ```{r}
 contract_df <-
   one_contract_per_year_df %>%
-  left_join(snp_df, by = c("star_year", "contract_id")) %>%
+  #left_join(snp_df, by = c("star_year", "contract_id")) %>%
   mutate(
     part_d_cut_point_type = case_when(
       grepl("PDP", org_type) ~ "Part D PDP",
@@ -102,11 +102,11 @@ contract_df <-
       star_year != 2022L ~ NA_character_,
       org_type %in% c("1876 Cost", "MSA", "PDP", "PFFS", "Demo") ~ org_type,
       org_type == "Employer/Union Only Direct Contract PDP"      ~ "PDP",
-      !is.na(snp_type)   ~ snp_type,
+      #!is.na(snp_type)   ~ snp_type,
       TRUE               ~ "CCP w/o SNP"
     )
-  ) %>%
-  select(-snp_type)
+  ) #%>%
+  #select(-snp_type)
 
 contract_df
 ```

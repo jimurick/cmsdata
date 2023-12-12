@@ -40,6 +40,12 @@ care_compare_df <-
   mutate(cc_id = 1:n()) %>%
   relocate(cc_id, .before = data_dir)
 
+care_compare_df$data_dir[36] <- care_compare_df$data_dir[37]
+care_compare_df$cc_month[38] <- 10L
+care_compare_df$cc_date[38] <- as.Date("2023-10-01")
+care_compare_df <- care_compare_df %>% filter(cc_id != 37)
+
+care_compare_df
 ```
 
 
@@ -66,6 +72,7 @@ find_mort_readm_files <- function(data_dir) {
     x <- list.files(data_dir)
     death_readm_re <- "(hospital.*return|unplanned.*visit|and.*death|complications).*hosp.*"
     x <- x[grepl(death_readm_re, x, ignore.case = TRUE)]
+    x <- x[!grepl("^PCH_", x, ignore.case = TRUE)]
     file.path(data_dir, x)
   }
 }
@@ -479,7 +486,11 @@ read_imaging_data <- function(filename) {
 
 
 ipfqr_get_first_word <- function(x) {
-  y <- toupper(str_trim(str_split(x, "[_ ]")[[1]][1]))
+  #y <- toupper(str_trim(str_split(x, "[_ ]")[[1]][1]))
+  toupper(str_trim(str_split(x, "[_ ]")[[1]][1]))
+}
+ipfqr_get_first_word2 <- function(x) {
+  str_match(str_trim(x), "^([^_ ]+)(?:[_ ][^_ ]+)*")[[2]]
 }
 ipfqr_get_all_but_first_word <- function(x) {
   y <- str_trim(str_split(x, "[_ ]")[[1]])
@@ -488,34 +499,68 @@ ipfqr_get_all_but_first_word <- function(x) {
   else
     NA_character_
 }
+# ipfqr_split_slash_measure_id <- function(x) {
+#   if (grepl("/", x)) {
+#     m_vec <- str_split(x, "/")[[1]]
+#     m_pre <- str_split(m_vec, "-")[[1]][1]
+#     m_vec[2] <- str_c(m_pre, m_vec[2])
+#     m_vec
+#   } else {
+#     x
+#   }
+# }
 ipfqr_split_slash_measure_id <- function(x) {
-  if (grepl("/", x)) {
-    m_vec <- str_split(x, "/")[[1]]
-    m_pre <- str_split(m_vec, "-")[[1]][1]
-    m_vec[2] <- str_c(m_pre, m_vec[2])
-    m_vec
-  } else {
-    x
-  }
+  m_vec <- str_split(x, "/")[[1]]
+  m_pre <- str_split(m_vec, "-")[[1]][1]
+  m_vec[2] <- str_c(m_pre, m_vec[2])
+  m_vec
 }
 
 read_ipfqr_data <- function(filename) {
+  #cat("\r\n")
+  #cat(filename)
   df <- read.csv(filename, check.names = FALSE, colClasses = "character")
   colnames(df)[1:2] <- c("provider_id", "hospital_name")
   
+  #cat("\r\n\tunpivot and then pivot")
   # unpivot and then pivot
-  df <-
+  # df <-
+  #   df %>%
+  #   pivot_longer(cols = -c(provider_id, hospital_name),
+  #                names_to = "col_name", values_to = "value") %>%
+  #   transmute(
+  #     provider_id,
+  #     measure_id = map_chr(col_name, ipfqr_get_first_word),
+  #     measure_id = map(measure_id, ipfqr_split_slash_measure_id),
+  #     measure_stat = map_chr(col_name, ipfqr_get_all_but_first_word),
+  #     value
+  #   ) %>%
+  #   unnest(measure_id) %>%
+  temp_df <-
     df %>%
     pivot_longer(cols = -c(provider_id, hospital_name),
                  names_to = "col_name", values_to = "value") %>%
-    transmute(
+    mutate(
       provider_id,
       measure_id = map_chr(col_name, ipfqr_get_first_word),
-      measure_id = map(measure_id, ipfqr_split_slash_measure_id),
+      value
+    )
+  df1 <- temp_df %>% filter(!grepl("/", measure_id))
+  df2 <- temp_df %>% filter(grepl("/", measure_id)) %>%
+    mutate(
+      measure_id = map(measure_id, ipfqr_split_slash_measure_id)
+    ) %>%
+    unnest(measure_id)
+  #cat(str_c("\r\n\t\tdim(df1) = ", paste(dim(df1), collapse=", ")))
+  #cat(str_c("\r\n\t\tdim(df2) = ", paste(dim(df2), collapse=", ")))
+  df <-
+    bind_rows(df1, df2) %>%
+    transmute(
+      provider_id,
+      measure_id,
       measure_stat = map_chr(col_name, ipfqr_get_all_but_first_word),
       value
     ) %>%
-    unnest(measure_id) %>%
     mutate(
       measure_id = gsub("-", "_", measure_id),
       measure_stat = case_when(
@@ -639,23 +684,62 @@ all_ipfqr_data_df <-
 
 
 
+```{r}
+# care_compare_df <- care_compare_df %>% filter(cc_id != 34)
+# all_mort_readm_data_df <- all_mort_readm_data_df %>% filter(cc_id != 34)
+# all_maternal_data_df <- all_maternal_data_df %>% filter(cc_id != 34)
+# all_hai_data_df <- all_hai_data_df %>% filter(cc_id != 34)
+# all_hcahps_data_df <- all_hcahps_data_df %>% filter(cc_id != 34)
+# all_timely_data_df <- all_timely_data_df %>% filter(cc_id != 34)
+# all_imaging_data_df <- all_imaging_data_df %>% filter(cc_id != 34)
+# all_ipfqr_data_df <- all_ipfqr_data_df %>% filter(cc_id != 34)
+```
+
+
+
+The previous code chunk takes a long time, so save that data here
+
+CAREFUL: These tables are saved at the end. May not want to overwrite them.
+
+```{r}
+save(all_mort_readm_data_df, file = file.path(dirs$rdata, "temp_all_mort_readm_data_df.RData"))
+save(all_maternal_data_df,   file = file.path(dirs$rdata, "temp_all_maternal_data_df.RData"))
+save(all_hai_data_df,        file = file.path(dirs$rdata, "temp_all_hai_data_df.RData"))
+save(all_hcahps_data_df,     file = file.path(dirs$rdata, "temp_all_hcahps_data_df.RData"))
+save(all_timely_data_df,     file = file.path(dirs$rdata, "temp_all_timely_data_df.RData"))
+save(all_imaging_data_df,    file = file.path(dirs$rdata, "temp_all_imaging_data_df.RData"))
+save(all_ipfqr_data_df,      file = file.path(dirs$rdata, "temp_all_ipfqr_data_df.RData"))
+```
+
+
+```{r}
+load(file = file.path(dirs$rdata, "temp_all_mort_readm_data_df.RData"))
+load(file = file.path(dirs$rdata, "temp_all_maternal_data_df.RData"))
+load(file = file.path(dirs$rdata, "temp_all_hai_data_df.RData"))
+load(file = file.path(dirs$rdata, "temp_all_hcahps_data_df.RData"))
+load(file = file.path(dirs$rdata, "temp_all_timely_data_df.RData"))
+load(file = file.path(dirs$rdata, "temp_all_imaging_data_df.RData"))
+load(file = file.path(dirs$rdata, "temp_all_ipfqr_data_df.RData"))
+```
+
+
 
 
 
 ```{r}
-update_col_name_if_exists <- function(df, name_from, name_to) {
+update_col_name_if_exists <- function(df, name_from, name_to, add_col = TRUE) {
   name_index <- grep(name_from, colnames(df))
   if (length(name_index) >= 1) {
     colnames(df)[name_index[1]] <- name_to
-  } else {
+  } else if (add_col) {
     df[[name_to]] <- NA_character_
   }
   df
 }
 
-update_col_names <- function(df, name_from_to_list) {
+update_col_names <- function(df, name_from_to_list, add_col = TRUE) {
   for (n in names(name_from_to_list)) {
-    df <- update_col_name_if_exists(df, n, name_from_to_list[[n]])
+    df <- update_col_name_if_exists(df, n, name_from_to_list[[n]], add_col)
   }
   df
 }
@@ -670,6 +754,7 @@ read_va_hospital_file <- function(zip_dir, zip_date) {
   } else {
     fname <- list.files(zip_dir, pattern = "Vet.*Health.*Admin.*Prov.*.csv")
   }
+  
   if (length(fname) > 0) {
     fname <- file.path(zip_dir, fname)
     if (file.exists(fname)) {
@@ -677,6 +762,14 @@ read_va_hospital_file <- function(zip_dir, zip_date) {
         read.csv(fname, colClasses = "character", check.names = FALSE) %>%
         mutate(across(everything(), str_trim))
       colnames(df)[1:2] <- c("provider_id", "hospital_name")
+      city_cols <- grep("^city", colnames(df), ignore.case = TRUE)
+      name_from_to_list <- list(
+        "City/Town"        = "City",
+        "County/Parish"    = "County Name",
+        "Telephone Number" = "Phone Number"
+      )
+      df <- update_col_names(df, name_from_to_list, add_col = FALSE)
+      
       df %>%
         transmute(
           provider_id,
@@ -707,6 +800,7 @@ read_general_info_file <- function(zip_dir, zip_date) {
     fname <- list.files(zip_dir, pattern = "Hospital.*General.*Information.csv")
     fname <- file.path(zip_dir, fname)
   }
+  #cat(sprintf("\r\nfilename = '%s'\r\n", file.path(zip_dir, fname)))
   df <-
     read.csv(fname, colClasses = "character", check.names = FALSE) %>%
     mutate(across(everything(), str_trim))
@@ -728,6 +822,12 @@ read_general_info_file <- function(zip_dir, zip_date) {
     "Count of Facility TE Measures"     = "timeeff_hospital_measure_count"
   )
   df <- update_col_names(df, name_from_to_list)
+  other_name_updates <- list(
+    "City/Town"                         = "City",
+    "County/Parish"                     = "County Name",
+    "Telephone Number"                  = "Phone Number"
+  )
+  df <- update_col_names(df, other_name_updates)
   
   df <-
     df %>%
@@ -757,6 +857,7 @@ read_general_info_file <- function(zip_dir, zip_date) {
   just_digits <- function(x) ifelse(grepl("^[0-9]+$", x), x, NA_character_)
   at_least_3  <- function(x) ifelse(replace_na(x, 0) >= 3, 1L, 0L)
   
+  #cat(sprintf("\r\n to_int_cols = \r\n", to_int_cols))
   df[, to_int_cols] <- lapply(df[, to_int_cols], just_digits)
   df[, to_int_cols] <- lapply(df[, to_int_cols], as.integer)
   
@@ -780,6 +881,7 @@ read_general_info_file <- function(zip_dir, zip_date) {
 }
 
 get_date_conversion_func <- function(str_vec) {
+  str_vec <- str_vec[str_trim(str_vec) != ""]
   if (all(grepl("^\\d{4}-\\d{1,2}-\\d{1,2}", str_vec))) {
     lubridate::ymd
   } else if (all(grepl("^\\d{1,2}/\\d{1,2}/\\d{2,4}", str_vec))) {
@@ -809,6 +911,8 @@ read_measure_dates_file <- function(data_dir, cc_date) {
       date_cols <- grep("Measure (Start|End) Date", colnames(df))
       if (length(date_cols) == 2)
         colnames(df)[date_cols] <- c("Start Date", "End Date")
+      df$`Start Date` <- gsub("^N/A$", "", df$`Start Date`)
+      df$`End Date`   <- gsub("^N/A$", "", df$`End Date`)
       date_func <- get_date_conversion_func(df$`Start Date`)
       
       df <-
@@ -928,7 +1032,10 @@ all_measure_dates_df <-
   unnest(data) %>%
   mutate(measure_id = map2(measure_id, cc_date, update_hcahps_measure_ids)) %>%
   unnest(measure_id)
+
+read_general_info_file(care_compare_df$data_dir[1], care_compare_df$cc_date[1])
 ```
+
 
 
 This next chunk assumes that you've downloaded the SAS program input files from the URL below, and put them in a folder named "sas"
@@ -943,7 +1050,8 @@ all_sas_input_df <-
     "all_data_2019jan.sas7bdat", "2019-03-01",
     "all_data_2020jan.sas7bdat", "2019-10-01",
     "all_data_2021apr.sas7bdat", "2020-10-01",
-    "all_data_2022jul.sas7bdat", "2021-07-01"
+    "all_data_2022jul.sas7bdat", "2021-07-01",
+    "alldata_2023jul.sas7bdat",  "2023-01-01"
   ) %>%
   mutate(
     sas_file_id = 1:n(),
@@ -1028,7 +1136,6 @@ all_measure_info_df <-
     by = c("cc_date", "measure_id")
   ) %>%
   arrange(cc_date, measure_id)
-
 
 all_measure_info_df
 ```
@@ -1155,7 +1262,13 @@ replacement <- update_measures(
 all_mort_readm_data_df$data[[replacement$index]] <- replacement$df
 
 
-
+# TODO: In the July 2022 CMS Care Compare Data Dictionary, there's a Release
+#       Updates (Appendix F) note saying
+#           "In July 2022, CMS will update the 2021 OP-10 measure
+#            results to correct the calculation of error"
+#       Does that mean the 2022-07 numbers should replace the OP-10 from
+#       2021-07 through 2022-04?
+# https://data.cms.gov/provider-data/archived-data/hospitals
 replacement1 <- update_measures2(
   all_imaging_data_df, "Imaging", c("OP_10"),
   from_date = "2022-07-01", to_date = "2022-04-01"
@@ -1182,6 +1295,24 @@ all_imaging_data_df$data[[replacement3$index]] <- replacement3$df
 all_imaging_data_df$data[[replacement4$index]] <- replacement4$df
 all_imaging_data_df$data[[replacement5$index]] <- replacement5$df
 
+# It's noted that the OP-13 scores for the year Jul '22 - Jun '23
+# https://essentialhospitals.org/policy/july-2023-hospital-overall-star-ratings-preview-reports-available
+replacement6 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_13"),
+  from_date = "2023-04-01", to_date = "2022-07-01"
+)
+replacement7 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_13"),
+  from_date = "2023-04-01", to_date = "2022-10-01"
+)
+replacement8 <- update_measures2(
+  all_imaging_data_df, "Imaging", c("OP_13"),
+  from_date = "2023-04-01", to_date = "2023-01-01"
+)
+all_imaging_data_df$data[[replacement6$index]] <- replacement6$df
+all_imaging_data_df$data[[replacement7$index]] <- replacement7$df
+all_imaging_data_df$data[[replacement8$index]] <- replacement8$df
+
 
 # The OP_10 dates in the measure table need to get updated too
 
@@ -1203,6 +1334,7 @@ all_measure_info_df <-
   select(-update_flag)
 
 # TODO: Update national rates for OP_10
+# TODO: Update national rates for OP_13?
 
 ```
 
@@ -1228,7 +1360,6 @@ all_data_list <- list(
 
 save(all_data_list, file = file.path(dirs$rdata, "all_data_list.RData"))
 ```
-
 
 
 

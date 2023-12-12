@@ -12,3 +12,4 @@ star_year,filename,skip,nrows,first_col,last_col,part_row,measure_row,measures_n
 2020,zips/2020displaymeasures202001102/2020_Display_Measures_2020_01_10/2020_Display_Measures_2019_12_31.csv,1,2,5,52,1,2,TRUE,TRUE
 2021,zips/2021-display-measures-20210330/2021_HPMS_Display_Measures_2020_12_08.csv,1,2,5,56,1,2,TRUE,TRUE
 2022,zips/2022-display-measures/2022_HPMS_Display_Measures_2022_01_11.csv,1,2,5,55,1,2,TRUE,TRUE
+2023,zips/2023 Display Measures/2023_HPMS_Display_Measures_2023_01_05.csv,1,2,5,58,1,2,TRUE,TRUE

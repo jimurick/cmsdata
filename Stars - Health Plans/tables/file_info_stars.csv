@@ -21,3 +21,4 @@ star_year,part_c_only,part_d_only,filename,skip,first_col,last_col,encoding
 2021,FALSE,FALSE,zips/2021-star-ratings-data-table-oct-08-2020/2021 Star Ratings Data Table - Measure Stars (Oct 08 2020).csv,3,6,51,ANSI
 2022,FALSE,FALSE,zips/2022-star-ratings-data-table-oct-06-2021/2022 Star Ratings Data Table - Measure Stars (Oct 06 2021).csv,3,6,45,ANSI
 2023,FALSE,FALSE,zips/2023-star-ratings-data-table/2023 Star Ratings Data Table - Measure Stars (Oct 04 2022).csv,3,6,45,ANSI
+2024,FALSE,FALSE,zips/2024 Star Ratings Data Tables (Oct 13 2023)_0/Measure Star Scores.csv,3,6,47,ANSI

@@ -25,7 +25,6 @@ initial_data_processing <- function(...) {
   measure_ids <- measure_ids[grepl(str_c("^", part), measure_ids)]
   
   read_cols <- row_df %$% c(1, first_col:last_col)
-  
   df <- row_df %$%
     # read.csv(filename, skip = skip, encoding = encoding,
     #          colClasses = "character")[, read_cols]
@@ -55,7 +54,7 @@ initial_data_df <-
   select(-file_nbr, -data) %>%
   unnest(data_file_df) %>%
   mutate(across(all_of(c("contract_id", "measure_id", "entry")),
-                function(x) gsub('’', "'", replace_na(x, "")))) %>%
+                function(x) str_replace_all(replace_na(x, ""), '’', "'"))) %>%
   mutate(across(all_of(c("contract_id", "measure_id", "entry")), str_trim)) %>%
   filter(entry != "") %>%
   filter(nchar(contract_id) == 5) %>%
@@ -64,6 +63,7 @@ initial_data_df <-
 
 initial_data_df
 ```
+
 
 
 

@@ -91,7 +91,12 @@ initial_processing <- function(...) {
 
   # Ugly fix because of a header in the 2010 Part C data file
   my_str_trim <- function(x) {
-    str_trim(gsub("\x96", "-", gsub("[\x94\xa0]", "", x)))
+    str_trim(
+      gsub("\x96", "-", gsub("\x94", "", gsub("\xa0", "", x, useBytes = TRUE),
+                             useBytes = TRUE), useBytes = TRUE))
+      # str_replace_all(
+      #   str_replace_all(
+      #     str_replace_all(x, "\x96", "-"), "\x94", ""), "\xa0", ""))
   }
   
   df <-
@@ -99,19 +104,21 @@ initial_processing <- function(...) {
     read.csv(filename, check.names = FALSE, skip = skip, nrows = nrows,
              colClasses = "character", encoding = encoding)[, first_col:last_col]
   row.names(df) <- paste0("c", 1:nrow(df))
-  one_measure_df <-
-    t(df) %>%
-    as_tibble() %>%
-    mutate(across(everything(), function(x) replace_na(x, ""))) %>%
-    mutate(across(everything(), my_str_trim))
+  # one_measure_df <-
+  #   t(df) %>%
+  #   as_tibble() %>%
+  #   mutate(across(everything(), function(x) replace_na(x, ""))) %>%
+  #   mutate(across(everything(), my_str_trim))
   col_nbrs <- row_df %$% c(measure_row, domain_row, date_row)
-  df <- as_tibble(t(df))[, col_nbrs]
+  df <- as_tibble(t(df))[, col_nbrs] %>%
+    mutate(across(everything(), my_str_trim))
   colnames(df) <- c("measure_name", "domain_name", "dates")
   
   domain_vec <- df %>% filter(domain_name != "") %>% pull(domain_name)
-  date_vec   <- df %>% filter(dates != "") %>% pull(dates)
+  date_vec   <- df %>% filter(dates       != "") %>% pull(dates)
   df$domain_name <- domain_vec[cumsum(ifelse(df$domain_name == "", 0, 1))]
-  df$dates       <-   date_vec[cumsum(ifelse(df$dates == "", 0 , 1))]
+  df$dates <- date_vec[cumsum(ifelse(df$dates == "", 0, 1))]
+  #df$dates <- my_str_trim(date_vec[cumsum(ifelse(df$dates == "", 0, 1))])
   
   part <- row_df %$% case_when(part_c_only~"C", part_d_only~"D")
   if (row_df$measures_numbered) {
@@ -146,7 +153,7 @@ initial_measure_df <-
   mutate(dates = map_chr(dates, fix_utf)) %>%
   mutate(
     measure_name = map_chr(measure_name,
-                           function(x) gsub("\n", " ", fix_utf(x)))
+                           function(x) str_replace_all(fix_utf(x), "\n", " "))
   )
 
 initial_measure_df <-
@@ -159,7 +166,8 @@ initial_measure_df <-
     dates = gsub("June ", "06/", dates),
     dates = gsub("Aug ",  "08/", dates),
     #dates = gsub(sprintf("[%s]", two_dashes), "-", dates),
-    dates = gsub("[^0-9/-]", "", dates),
+    dates = gsub("[–-]", "-", dates),
+    dates = gsub("[^0-9'/-]", "", dates),
     from_date = map_chr(dates, ~str_split(.x, "[–-]")[[1]][1]),
     to_date = map_chr(dates, ~str_split(.x, "[–-]")[[1]][2]),
     to_date = gsub("^(\\d{1,2})/(\\d{2,4})$", "\\1/01/\\2", to_date),
@@ -173,7 +181,10 @@ initial_measure_df <-
   select(star_year, domain_id, measure_id, measure_name,
          data_start_date = from_date, data_end_date = to_date, dates)
 
+
 initial_measure_df
+initial_measure_df %>% filter(star_year == 2024)
+initial_measure_df %>% filter(star_year == 2017)
 ```
 
 
@@ -183,7 +194,7 @@ initial_measure_df
 measure_history_df <-
   read.csv(file.path(dirs$table, "measure_history.csv"),
            check.names = FALSE) %>%
-  pivot_longer(`2023`:`2008`,
+  pivot_longer(`2024`:`2008`,
                names_to = "star_year", values_to = "measure_id") %>%
   mutate(across(everything(), function(x) replace_na(x, ""))) %>%
   mutate(across(everything(), str_trim)) %>%
@@ -210,7 +221,7 @@ measure_weights_df <- read.csv(file.path(dirs$table, "measure_weights.csv"))
 measure_weights_df
 ncqa_codes_df <-
   read.csv(file.path(dirs$table, "ncqa_codes.csv")) %>%
-  filter(star_year == 2023)
+  filter(star_year == 2024)
 ncqa_codes_df
 ```
 
@@ -276,6 +287,21 @@ save(measure_df, file = file.path(dirs$rdata, "04_measure_df.RData"))
 
 
 # scratch work
+
+```{r}
+null_date_df <-
+  measure_df %>%
+  filter(!display_measure) %>%
+  filter(is.na(data_start_date) | is.na(data_end_date) |
+           is.null(data_start_date) | is.null(data_end_date))
+
+null_date_df %>% count(star_year) %>% arrange(desc(n))
+null_date_df %>% count(measure_id, measure_name) %>% arrange(desc(n))
+
+measure_df %>% filter(star_year == 2024)
+```
+
+
 
 ```{r}
 measure_weights_df %>% filter(star_year == 2015)

@@ -55,6 +55,7 @@ file_df <-
     	"2021",    1L,         c(1, 9:11), 6L,          c(7,8),
     	"2022",    1L,         c(1, 9:11), 6L,          c(7,8),
       "2023",    1L,         c(1, 9:11), 6L,          c(7,8),
+      "2024",    1L,         c(1, 9:11), 6L,          c(7,8),
     ),
     by = "file_key"
   )
@@ -143,6 +144,8 @@ snp_disaster_df <-
 contract_df <-
   contract_df %>%
   left_join(snp_disaster_df, by = c("star_year", "contract_id"))
+
+contract_df
 ```
 
 

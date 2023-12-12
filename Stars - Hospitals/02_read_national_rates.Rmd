@@ -36,6 +36,13 @@ care_compare_df <-
   arrange(cc_date) %>%
   mutate(cc_id = 1:n()) %>%
   relocate(cc_id, .before = data_dir)
+
+care_compare_df$data_dir[36] <- care_compare_df$data_dir[37]
+care_compare_df$cc_month[38] <- 10L
+care_compare_df$cc_date[38] <- as.Date("2023-10-01")
+care_compare_df <- care_compare_df %>% filter(cc_id != 37)
+
+care_compare_df
 ```
 
 
@@ -463,6 +470,7 @@ natl_imaging_df <-
 
 
 
+
 IPFQR is much harder
 
 ```{r}
@@ -565,6 +573,18 @@ natl_ipfqr_df <-
 
 
 ```{r}
+# care_compare_df <- care_compare_df %>% filter(cc_id != 34)
+# natl_mort_readm_df <- natl_mort_readm_df %>% filter(cc_id != 34)
+# natl_hai_df <- natl_hai_df %>% filter(cc_id != 34)
+# natl_hcahps_df <- natl_hcahps_df %>% filter(cc_id != 34)
+# natl_timely_df <- natl_timely_df %>% filter(cc_id != 34)
+# natl_imaging_df <- natl_imaging_df %>% filter(cc_id != 34)
+# natl_ipfqr_df <- natl_ipfqr_df %>% filter(cc_id != 34)
+```
+
+
+
+```{r}
 all_national_rates_df <-
   bind_rows(
     natl_mort_readm_df %>% select(cc_date, data) %>% unnest(data) %>%
@@ -590,6 +610,21 @@ save(all_national_rates_df, file = file.path(dirs$rdata, "all_national_rates_df.
 # all_national_rates_df %>%
 #   write.csv("C:/Users/jimur/Desktop/all_national_rates_2023-01-16.csv", row.names = FALSE)
 ```
+
+
+
+
+
+
+
+
+```{r}
+natl_timely_df %>% select(cc_date, data) %>% unnest(data) %>%
+  filter(measure_id == "HCP_COVID_19") %>% distinct()
+all_national_rates_df
+```
+
+
 
 
 

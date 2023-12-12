@@ -31,3 +31,5 @@ star_year,part_d_type,filename,skip,nrows,first_col,last_col
 2022,PDP,zips/2022-star-ratings-data-table-oct-06-2021/2022 Star Ratings Data Table - Part D Cutpoints (Oct 06 2021).csv,8,5,2,14
 2023,MA-PD,zips/2023-star-ratings-data-table/2023 Star Ratings Data Table - Part D Cut Points (Oct 04 2022).csv,3,5,2,14
 2023,PDP,zips/2023-star-ratings-data-table/2023 Star Ratings Data Table - Part D Cut Points (Oct 04 2022).csv,8,5,2,14
+2024,MA-PD,zips/2024 Star Ratings Data Tables (Oct 13 2023)_0/2024 Star Ratings Data Table - Part D Cut Points (Oct 12 2023).csv,3,5,2,14
+2024,PDP,zips/2024 Star Ratings Data Tables (Oct 13 2023)_0/2024 Star Ratings Data Table - Part D Cut Points (Oct 12 2023).csv,8,5,2,14
