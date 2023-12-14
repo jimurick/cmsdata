@@ -214,12 +214,8 @@ save(my_sas_input_df, file = "rdata/my_sas_input_df.RData")
 
 
 
-```{r}
-library(data.table)
-#load("rdata/my_sas_input_df.RData")
-load("rdata/measures_202104_dt.rda")
-load("rdata/measure_groups_202104_dt.rda")
 
+```{r}
 measures_202104_dt <-
   measures_202104_dt %>%
   mutate(
@@ -261,12 +257,12 @@ measure_ref <-
       "v202307" = measures_202307_dt
     )
   )
-
-save(measure_ref, file = "rdata/measure_ref.rda")
 ```
 
 
-
+```{r}
+save(measure_ref, file = "rdata/measure_ref.rda")
+```
 
 
 
@@ -283,12 +279,6 @@ To avoid confusion in reporting, I replaced the SAS input constructed from Care 
 ```{r}
 install.packages("devtools")
 devtools::install_github("jimurick/hospitalstars")
-```
-
-
-
-```{r}
-load(file = "rdata/my_sas_input_df.RData")
 ```
 
 
@@ -323,181 +313,4 @@ sas_package_data_df <-
 save(sas_package_data_df, file = "rdata/sas_package_data_df.RData")
 ```
 
-
-
-
-
-
-
-```{r}
-my_sas_input_df$data[[24]]
-colnames(my_sas_input_df$data[[24]])
-
-hospitalstars::compute_star_scores(my_sas_input_df$data[[24]])
-hospitalstars::sas_package$v202307$input_df
-hospitalstars::sas_package$v202307
-hospitalstars::compute_star_scores(hospitalstars::sas_package$v202307$input_df)
-
-sas_package_data_df %>%
-  transmute(
-    cc_date,
-    x = map_int(sas_output_df, nrow)
-  )
-```
-
-
-
-
-```{r}
-geis_df <-
-  hospital_info_df %>%
-  filter(grepl("GEISINGER", hospital_name)) %>%
-  select(PROVIDER_ID, hospital_name)
-
-geis_df <-
-  geis_df %>%
-  inner_join(sas_package_data_df$sas_output_df[[16]][, -(2:95)])
-
-colnames(geis_df)[1:7] <- c("provider_id", "hospital", "mortality", "pt_exp", "process", "readmission", "safety")
-geis_df <- geis_df[, c(1:7, 16)]
-geis_df
-```
-
-
-
-```{r}
-sas_package_data_df$cc_date[[16]]
-sas_package_data_df$sas_output_df[[16]] %>%
-  select(PROVIDER_ID, OP_10)
-```
-
-
-
-
-```{r}
-sas_package_data_df$sas_output_df[[22]]
-colnames(sas_package_data_df$sas_output_df[[22]])
-```
-
-
-
-
-
-```{r}
-sas_dt <- as.data.table(my_sas_input_df$data[[12]])
-sas_col_order <- colnames(all_sas_input_df$data[[15]])
-sas_col_order <- sas_col_order[sas_col_order %in% colnames(sas_dt)]
-sas_dt <- sas_dt[, ..sas_col_order]
-cms_dt <- all_sas_input_df$data[[15]]
-
-sas_dt
-cms_dt
-
-compare_col_vals <- function(col_name) {
-  inner_join(
-      sas_dt %>% select_at(c("PROVIDER_ID", col_name)) %>%
-        rename_at(all_of(col_name), function(x) str_c("me")),
-      cms_dt %>% select_at(c("PROVIDER_ID", col_name)) %>%
-        rename_at(all_of(col_name), function(x) str_c("cms")),
-      by = "PROVIDER_ID"
-    ) %>%
-    mutate(same = (me == cms)) %>%
-    count(same)
-}
-
-tibble(col_name = colnames(sas_dt)[-1]) %>%
-  mutate(compare_df = map(col_name, compare_col_vals)) %>%
-  unnest(compare_df) %>%
-  filter(!same | is.na(same))
-
-
-my_stars <- compute_star_scores_202104(sas_dt)
-
-cms_stars <-
-  all_hospital_info_df %>%
-  filter(cc_date == "2021-04-01") %>%
-  select(PROVIDER_ID = provider_id, overall_rating)
-
-compare_stars_df <-
-  my_stars %>%
-  select(PROVIDER_ID, stars) %>%
-  inner_join(cms_stars, by = "PROVIDER_ID") %>%
-  mutate(same = (stars == overall_rating))
-
-table(compare_stars_df$same) / nrow(compare_stars_df %>% filter(!is.na(same)))
-table(compare_stars_df$stars, compare_stars_df$overall_rating)
-```
-
-
-
-```{r}
-find_blank_measures <- function(df) {
-  df %>%
-    pivot_longer(-PROVIDER_ID, names_to = "measure_id", values_to = "score") %>%
-    group_by(measure_id) %>%
-    summarize(n = n(), na_count = sum(is.na(score)), .groups = "drop") %>%
-    filter(n == na_count) %>%
-    pull(measure_id)
-}
-
-missing_measure_df <-
-  my_sas_input_df %>%
-  mutate(measure_id = map(data, find_blank_measures)) %>%
-  select(-data) %>%
-  unnest(measure_id) %>%
-  mutate(den = grepl("_DEN$", measure_id)) %>%
-  filter(!den) %>%
-  select(-den) %>%
-  mutate(x = "x") %>%
-  pivot_wider(names_from = measure_id, values_from = x, values_fill = "")
-
-missing_measure_df
-```
-
-
-```{r}
-new_2018_07       <- c("EDAC_30_PN", "SEP_1") # Readmission, Process
-new_in_2020       <- c("OP_36", "OP_35_ADM", "OP_35_ED") # Readmission
-delayed_1_quarter <- c("OP_32", "OP_35_ADM", "OP_35_ED") # Readmission
-delayed_2_quarters <- c("MORT_30_PN", "PSI_4_SURG_COMP", "PSI_90_SAFETY") # Mortality, Mortality, Safety
-moved_to_new_file <- c("PC_01") # Process
-retired_in_2022   <- c("OP_33") # Process
-
-all_measure_info_df %>% filter(cc_date == "2021-07-01") %>%
-  filter(!is.na(sas_measure_id)) %>%
-  select(measure_group, measure_id) %>%
-  arrange(measure_group, measure_id)
-
-all_measure_info_df %>% filter(measure_id == "EDAC_30_PN")
-all_measure_info_df %>% filter(measure_id %in% new_in_2020)
-all_measure_info_df %>% filter(grepl("EDAC", measure_id)) %>% count(care_compare_filename)
-all_measure_info_df %>% filter(grepl("EDAC", measure_id), grepl("Returns", care_compare_filename))
-all_mort_readm_data_df$data[[30]]
-all_mort_readm_data_df %>%
-  select(-data) %>%
-  filter(grepl("Unplanned", filename))
-all_measure_info_df %>% filter(measure_id == "OP_10") %>% arrange(desc(cc_date))
-```
-
-
-
-
-```{r}
-sas_package_data_df$sas_output_df[[20]][, -(2:95)]
-sas_package_data_df$sas_output_df[[20]] %>% pull(n_groups) %>% table
-sas_package_data_df$sas_output_df[[15]] %>% pull(n_groups) %>% table
-sas_package_data_df$sas_output_df[[16]] %>% pull(n_groups) %>% table
-
-sas_package_data_df$sas_output_df[[20]] %>% pull(stars) %>% table
-sas_package_data_df$sas_output_df[[15]] %>% pull(stars) %>% table
-sas_package_data_df$sas_output_df[[16]] %>% pull(stars) %>% table
-
-na_counts <-
-  lapply(sas_package_data_df$sas_output_df[[20]],
-         function(x) sum(is.na(x)) / length(x)) %>% unlist
-na_counts[order(na_counts, decreasing = TRUE)]
-na_counts <- na_counts[order(names(na_counts))]
-missing_cols <- names(na_counts[na_counts == 1])
-missing_cols[!grepl("_DEN$", missing_cols)]
-```
 

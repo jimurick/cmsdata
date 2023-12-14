@@ -1,0 +1,12 @@
+*.sas7bdat
+*.pdf
+*.xlsx
+*.csv
+SAS 2017-12
+SAS 2019-02
+SAS 2020-01
+SAS 2021-04
+SAS 2022-07
+SAS 2023-07
+!Measure History in SAS.xlsx
+!sas_package_output*.csv

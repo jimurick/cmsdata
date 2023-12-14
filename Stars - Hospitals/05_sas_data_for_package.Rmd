@@ -13,8 +13,8 @@ library(data.table)
 load(file = file.path(dirs$rdata, "my_sas_input_df.RData"))
 load(file = file.path(dirs$rdata, "all_data_list.RData"))
 load(file = file.path(dirs$rdata, "measures_202104_dt.rda"))
-load(file = file.path(dirs$rdata, "measure_ref.rda"))
 load(file = file.path(dirs$rdata, "measure_groups_202104_dt.rda"))
+#load(file = file.path(dirs$rdata, "measure_ref.rda"))
 
 all_mort_readm_data_df <- all_data_list$all_mort_readm_data_df
 all_maternal_data_df   <- all_data_list$all_maternal_data_df
@@ -29,6 +29,59 @@ all_va_hospital_df     <- all_data_list$all_va_hospital_df
 all_sas_input_df       <- all_data_list$all_sas_input_df
 all_national_rates_df  <- all_data_list$all_national_rates_df
 measure_id_history_df  <- all_data_list$measure_id_history_df
+```
+
+
+
+
+
+```{r}
+measures_202104_dt <-
+  measures_202104_dt %>%
+  mutate(
+    measure_std = case_when(
+      measure_id == "PSI_4_SURG_COMP" ~ "std_PSI_04",
+      measure_id == "PSI_90_SAFETY"   ~ "std_PSI_90",
+      TRUE ~ measure_std
+    ),
+    measure_id = case_when(
+      measure_id == "PSI_4_SURG_COMP" ~ "PSI_04",
+      measure_id == "PSI_90_SAFETY"   ~ "PSI_90",
+      TRUE ~ measure_id
+    )
+  ) %>%
+  as.data.table()
+
+measures_202307_dt <-
+  data.table::rbindlist(list(
+    measures_202104_dt[
+      !(measures_202104_dt$retired_2022), !c("retired_2021", "retired_2022")
+    ],
+    all_measure_info_df %>%
+      filter(measure_id == "HCP_COVID_19", cc_date == "2023-07-01") %>%
+      transmute(
+        measure_id,
+        group_name   = measure_group,
+        measure_desc = measure_name,
+        flip_sign    = ifelse(higher_is_better == TRUE, 1, -1),
+        measure_std  = measure_id
+      )
+  ))
+
+measure_ref <-
+  list(
+    "group_dt" = measure_groups_202104_dt,
+    "measure_dt" = list(
+      "v202104" = measures_202104_dt[, !c("retired_2021", "retired_2022")],
+      "v202207" = measures_202104_dt[!measures_202104_dt$retired_2021, !c("retired_2021", "retired_2022")],
+      "v202307" = measures_202307_dt
+    )
+  )
+```
+
+
+```{r}
+save(measure_ref, file = "rdata/measure_ref.rda")
 ```
 
 
@@ -257,41 +310,8 @@ save(hospitalstars_data, file = file.path(dirs$rdata, "hospitalstars_data.RData"
 ```
 
 
-```{r}
-df <- star_algorithm_input_list$`2018-01`
-prov_or_score_columns <-
-  colnames(df)[!grepl("(_DEN(_PRED|_VOL)?|_COMP|_RATE_P)$", colnames(df))]
-melt(data.table(df[, prov_or_score_columns]), id.vars = "PROVIDER_ID",
-     variable.name = "measure_id", value.name = "score")
-unlist(lapply(df[, prov_or_score_columns], class))
-```
 
 
-
-```{r}
-colnames(measure_info_df)
-more_measures_info_dt %>%
-  select(measure_id) %>%
-  left_join(
-    measure_info_df %>% select(cc_date, measure_id), by = "measure_id"
-  ) %>%
-  group_by(measure_id) %>%
-  summarize(dates = sum(ifelse(is.na(cc_date), 0, 1))) %>%
-  arrange(dates)
-```
-
-
-```{r}
-star_algorithm_input_list$`2018-01` %>%
-  pivot_longer(-PROVIDER_ID) %>%
-  group_by(name) %>%
-  summarize(
-    is_na  = sum(ifelse(is.na(value), 1, 0)),
-    not_na = sum(ifelse(is.na(value), 0, 1)),
-    .groups = "drop"
-  )
-measures_202104_dt
-```
 
 
 
