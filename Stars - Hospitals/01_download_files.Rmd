@@ -34,7 +34,7 @@ make_zip_link <- function(x, archive = TRUE) {
 }
 
 yearly_zip_urls <- c(
-  sapply(2015:2020, make_zip_link), sapply(2021:2022, make_zip_link, FALSE)
+  sapply(2015:2020, make_zip_link), sapply(2021:2023, make_zip_link, FALSE)
 )
 ```
 

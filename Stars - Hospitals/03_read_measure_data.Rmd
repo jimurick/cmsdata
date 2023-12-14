@@ -38,12 +38,28 @@ care_compare_df <-
   bind_rows(lapply(list.dirs(dirs$zip), parse_zip_dir)) %>%
   arrange(cc_date) %>%
   mutate(cc_id = 1:n()) %>%
-  relocate(cc_id, .before = data_dir)
-
-care_compare_df$data_dir[36] <- care_compare_df$data_dir[37]
-care_compare_df$cc_month[38] <- 10L
-care_compare_df$cc_date[38] <- as.Date("2023-10-01")
-care_compare_df <- care_compare_df %>% filter(cc_id != 37)
+  relocate(cc_id, .before = data_dir) %>%
+  # These two folders were zipped differently - e.g., the data is in
+  # "zips/hospitals_10_2022/hospitals_10_2022" instead of "zips/hospitals_10_2022"
+  filter(
+    !(data_dir %in% c("zips/hospitals_10_2022", "zips/hospitals_01_2023"))
+  ) %>%
+  # The 2023-07 data was corrected in 2023-10
+  filter(
+    data_dir != "zips/hospitals_07_2023"
+  ) %>%
+  mutate(
+    cc_month = case_when(
+      data_dir == "zips/hospitals_10_2023" ~ 7,
+      data_dir == "zips/hospitals_11_2023" ~ 10,
+      TRUE ~ cc_month
+    ),
+    cc_date  = case_when(
+      data_dir == "zips/hospitals_10_2023" ~ as.Date("2023-07-01"),
+      data_dir == "zips/hospitals_11_2023" ~ as.Date("2023-10-01"),
+      TRUE ~ cc_date
+    )
+  )
 
 care_compare_df
 ```
@@ -1360,10 +1376,6 @@ all_data_list <- list(
 
 save(all_data_list, file = file.path(dirs$rdata, "all_data_list.RData"))
 ```
-
-
-
-
 
 
 
