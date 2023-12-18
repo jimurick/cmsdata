@@ -215,55 +215,6 @@ save(my_sas_input_df, file = "rdata/my_sas_input_df.RData")
 
 
 
-```{r}
-measures_202104_dt <-
-  measures_202104_dt %>%
-  mutate(
-    measure_std = case_when(
-      measure_id == "PSI_4_SURG_COMP" ~ "std_PSI_04",
-      measure_id == "PSI_90_SAFETY"   ~ "std_PSI_90",
-      TRUE ~ measure_std
-    ),
-    measure_id = case_when(
-      measure_id == "PSI_4_SURG_COMP" ~ "PSI_04",
-      measure_id == "PSI_90_SAFETY"   ~ "PSI_90",
-      TRUE ~ measure_id
-    )
-  ) %>%
-  as.data.table()
-
-measures_202307_dt <-
-  data.table::rbindlist(list(
-    measures_202104_dt[
-      !(measures_202104_dt$retired_2022), !c("retired_2021", "retired_2022")
-    ],
-    all_measure_info_df %>%
-      filter(measure_id == "HCP_COVID_19", cc_date == "2023-07-01") %>%
-      transmute(
-        measure_id,
-        group_name   = measure_group,
-        measure_desc = measure_name,
-        flip_sign    = ifelse(higher_is_better == TRUE, 1, -1),
-        measure_std  = measure_id
-      )
-  ))
-
-measure_ref <-
-  list(
-    "group_dt" = measure_groups_202104_dt,
-    "measure_dt" = list(
-      "v202104" = measures_202104_dt[, !c("retired_2021", "retired_2022")],
-      "v202207" = measures_202104_dt[!measures_202104_dt$retired_2021, !c("retired_2021", "retired_2022")],
-      "v202307" = measures_202307_dt
-    )
-  )
-```
-
-
-```{r}
-save(measure_ref, file = "rdata/measure_ref.rda")
-```
-
 
 
 ## Note about the 2023-01 SAS input
