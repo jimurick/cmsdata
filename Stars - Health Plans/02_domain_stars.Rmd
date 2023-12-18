@@ -37,8 +37,10 @@ domain_file_df[domain_file_df$file_key == "2010C", ]$filename <- correction_vec
 
 
 process_one_domain_file <- function(file_key, filename, skip_rows, col_ind) {
-  df <- read.csv(filename, skip = skip_rows,
-                 check.names = FALSE, colClasses = "character")[, col_ind] %>%
+  # df <- read.csv(filename, skip = skip_rows,
+  #                check.names = FALSE, colClasses = "character")[, col_ind] %>%
+  df <- read_csv(filename, skip = skip_rows, col_types = "c",
+                 locale = locale(encoding = "latin1"))[, col_ind] %>%
     mutate(across(everything(), function(x) str_trim(fix_utf(x))))
   colnames(df) <- fix_utf(colnames(df))
   if (grepl("C$", file_key)) {

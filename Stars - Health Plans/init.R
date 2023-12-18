@@ -4,6 +4,7 @@ library(tidyverse)
 library(magrittr)
 library(readxl)
 library(data.table)
+library(readr)
 
 dirs <- list(
   zip = "zips",
