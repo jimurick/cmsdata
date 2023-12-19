@@ -39,8 +39,10 @@ process_display_measures <- function(...) {
   
   top_rows_df <-
     row_list %$%
-    read.csv(filename, header = FALSE, skip = skip,
-             nrows = nrows)[, first_col:last_col] %>%
+    # read.csv(filename, header = FALSE, skip = skip,
+    #          nrows = nrows)[, first_col:last_col] %>%
+    read_csv(filename, skip = skip, col_types = 'c', col_names = FALSE, n_max = nrows,
+             locale = locale(encoding = "latin1"))[, first_col:last_col] %>%
     t() %>%
     as_tibble()
   

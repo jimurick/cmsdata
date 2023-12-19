@@ -7,9 +7,9 @@ star_year,filename,skip,nrows,first_col,last_col,part_row,measure_row,measures_n
 2015,"zips/2015_Star_Ratings_and_Display_Measures/2015 Display Measure Data, Technical Notes and Drug Lists/2015_Display_Measure_Output_2014_12_02.csv",1,2,5,48,1,2,TRUE,TRUE
 2016,zips/2016_Star_Ratings_and_Display_Measures/2016 Display Measure Data/2016_Display_Measure_Output_2015_12_17.csv,1,2,5,50,1,2,TRUE,TRUE
 2017,"zips/2017_Star_Ratings_and_Display_Measures/2017 Display Measure Data, Technical Notes and Drug Lists/2017_Display_Measure_Output_2016_12_19.csv",1,2,5,55,1,2,TRUE,TRUE
-2018,"zips/2018-Star-Ratings-and-Display-Measures/2018 Display Measure Data, Technical Notes and Drug Lists/2018_Display_Measures_2018_05_10.csv",1,2,5,47,1,2,TRUE,TRUE
+2018,"zips/2018_Star_Ratings_and_Display_Measures/2018 Display Measure Data, Technical Notes and Drug Lists/2018_Display_Measures_2018_05_10.csv",1,2,5,47,1,2,TRUE,TRUE
 2019,zips/2019_Display_Measures_2019_06_20/2019_Display_Measures_2019_06_19.csv,,,,,,,,
-2020,zips/2020displaymeasures202001102/2020_Display_Measures_2020_01_10/2020_Display_Measures_2019_12_31.csv,1,2,5,52,1,2,TRUE,TRUE
-2021,zips/2021-display-measures-20210330/2021_HPMS_Display_Measures_2020_12_08.csv,1,2,5,56,1,2,TRUE,TRUE
-2022,zips/2022-display-measures/2022_HPMS_Display_Measures_2022_01_11.csv,1,2,5,55,1,2,TRUE,TRUE
-2023,zips/2023 Display Measures/2023_HPMS_Display_Measures_2023_01_05.csv,1,2,5,58,1,2,TRUE,TRUE
+2020,zips/2020_Display_Measures_2020_01_10_2/2020_Display_Measures_2020_01_10/2020_Display_Measures_2019_12_31.csv,1,2,5,52,1,2,TRUE,TRUE
+2021,zips/2021 Display Measures 033021/2021_HPMS_Display_Measures_2020_12_08.csv,1,2,5,56,1,2,TRUE,TRUE
+2022,zips/2022 Display Measures_0/2022_HPMS_Display_Measures_2022_01_11.csv,1,2,5,55,1,2,TRUE,TRUE
+2023,zips/2023 Display Measures 10272023/2023_HPMS_Display_Measures_09_26_2023.csv,1,2,5,58,1,2,TRUE,TRUE
