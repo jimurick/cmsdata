@@ -16,10 +16,10 @@ star_year,part_c_only,part_d_only,filename,skip,nrows,first_col,last_col,domain_
 2015,FALSE,FALSE,zips/2015_Star_Ratings_and_Display_Measures/2015 Star Ratings Fall Release (10_2014)/2015_Report_Card_Master_Table_2014_10_03_data.csv,0,3,6,51,1,2,3,TRUE,TRUE,ANSI
 2016,FALSE,FALSE,zips/2016_Star_Ratings_and_Display_Measures/2016 Star Ratings Fall Release (10_2015)/2016_Report_Card_Master_Table_2015_10_02_data.csv,0,3,6,52,1,2,3,TRUE,TRUE,ANSI
 2017,FALSE,FALSE,zips/2017_Star_Ratings_and_Display_Measures/2017 Star Ratings Fall Release (10_2016)/2017_Report_Card_Master_Table_2016_10_26_data.csv,0,3,6,52,1,2,3,TRUE,TRUE,ANSI
-2018,FALSE,FALSE,zips/2018-Star-Ratings-and-Display-Measures/2018 Star Ratings Fall Release (11_2017)/2018_Report_Card_Master_Table_2017_11_01_data.csv,0,3,6,53,1,2,3,TRUE,TRUE,ANSI
-2019,FALSE,FALSE,zips/2019-Part-C-and-D-Medicare-Star-Ratings-Data-v04-12-2019/2019 Star Ratings Fall Release (11_2018)/2019_Report_Card_Master_Table_2018_11_13_data.csv,0,3,6,53,1,2,3,TRUE,TRUE,ANSI
-2020,FALSE,FALSE,zips/2020-Star-Ratings-Data-Table-Oct-21-2019/2020 Star Ratings Data Table - Measure Data (Oct 21 2019).csv,0,3,6,52,1,2,3,TRUE,TRUE,ANSI
-2021,FALSE,FALSE,zips/2021-star-ratings-data-table-oct-08-2020/2021 Star Ratings Data Table - Measure Data (Oct 08 2020).csv,0,3,6,51,1,2,3,TRUE,TRUE,ANSI
-2022,FALSE,FALSE,zips/2022-star-ratings-data-table-oct-06-2021/2022 Star Ratings Data Table - Measure Data (Oct 06 2021).csv,0,3,6,45,1,2,3,TRUE,TRUE,UTF-8
-2023,FALSE,FALSE,zips/2023-star-ratings-data-table/2023 Star Ratings Data Table - Measure Data (Oct 04 2022).csv,0,3,6,45,1,2,3,TRUE,TRUE,ANSI
+2018,FALSE,FALSE,zips/2018_Star_Ratings_and_Display_Measures/2018 Star Ratings Fall Release (11_2017)/2018_Report_Card_Master_Table_2017_11_01_data.csv,0,3,6,53,1,2,3,TRUE,TRUE,ANSI
+2019,FALSE,FALSE,"zips/2019 Part C and D Medicare Star Ratings Data (v04 12 2019) [ZIP, 9MB]/2019 Star Ratings Fall Release (11_2018)/2019_Report_Card_Master_Table_2018_11_13_data.csv",0,3,6,53,1,2,3,TRUE,TRUE,ANSI
+2020,FALSE,FALSE,zips/2020 Star Ratings Data Table (Oct 21 2019) _0/2020 Star Ratings Data Table - Measure Data (Oct 21 2019).csv,0,3,6,52,1,2,3,TRUE,TRUE,ANSI
+2021,FALSE,FALSE,zips/2021 Star Ratings Data Table (Oct 08 2020)/2021 Star Ratings Data Table - Measure Data (Oct 08 2020).csv,0,3,6,51,1,2,3,TRUE,TRUE,ANSI
+2022,FALSE,FALSE,zips/2022 Star Ratings Data Table (Oct 06 2021)/2022 Star Ratings Data Table - Measure Data (Oct 06 2021).csv,0,3,6,45,1,2,3,TRUE,TRUE,UTF-8
+2023,FALSE,FALSE,zips/2023 Star Ratings Data Tables (Oct 04 2022)/2023 Star Ratings Data Table - Measure Data (Oct 04 2022).csv,0,3,6,45,1,2,3,TRUE,TRUE,ANSI
 2024,FALSE,FALSE,zips/2024 Star Ratings Data Tables (Oct 13 2023)_0/2024 Star Ratings Data Table - Measure Data (Oct 12 2023).csv,0,3,6,47,1,2,3,TRUE,TRUE,ANSI
